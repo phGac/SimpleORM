@@ -1,0 +1,20 @@
+{
+    "name": "otter/orm",
+    "description": "Simple ORM for SQL Server",
+    "keywords": ["ORM", "SQL", "MSSQL", "SQLSRV"],
+    "homepage": "https://github.com/phGac/SimpleORM",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "phGac",
+            "email": "phgacbalada@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": { "Otter\\ORM": "src/" }
+    },
+    "require": {
+        "php" : "^7.0"
+    }
+}
