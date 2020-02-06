@@ -8,13 +8,14 @@ class QueryMaker {
     private $queryArray;
     private $arrayValuesPrepare;
     private $queryType;
+    private $onlyColumns;
 
     public function __construct(string $schema) {
         $this->schema = $schema;
         $this->queryFinal = '';
         $this->queryArray = [
             'top' => null,
-            'functions' => null,
+            'count' => false,
             'columns-joins' => null,
             'join' => null,
             'where' => null,
@@ -25,25 +26,34 @@ class QueryMaker {
         ];
         $this->arrayValuesPrepare = [];
         $this->queryType = null;
+        $this->onlyColumns = [];
     }
 
-    public function selectAll() {
+    public function selectAll(array $onlyColumns = []): QueryMaker {
         $this->queryType = QueryType::SELECT;
+        $this->onlyColumns = $onlyColumns;
         return $this;
     }
 
-    public function select() {
+    public function select(array $onlyColumns = []): QueryMaker {
         $this->queryType = QueryType::SELECT;
+        $this->onlyColumns = $onlyColumns;
         $this->queryArray['top'] = 1;
         return $this;
     }
 
-    public function limit(int $limit) {
+    public function count() {
+        $this->queryType = QueryType::COUNT;
+        $this->queryArray['count'] = true;
+        return $this;
+    }
+
+    public function limit(int $limit): QueryMaker {
         $this->queryArray['top'] = $limit;
         return $this;
     }
 
-    public function where(array $whereArray) {
+    public function where(array $whereArray): QueryMaker {
         $where = '';
         foreach ($whereArray as $key => $value) {
             $tableAndColumn = \explode('.', $key);
@@ -73,7 +83,7 @@ class QueryMaker {
         return $this;
     }
 
-    public function join(array $joinsArray) {
+    public function join(array $joinsArray): QueryMaker {
         $modelName = $this->schema::$modelName;
         $associations = $this->schema::$associations;
 
@@ -95,7 +105,7 @@ class QueryMaker {
                     $key = $association['key'];
 
                     $columnsJoins .= $this->columnsJoin($association['schema']::$columns, $assc_name);
-                    if(! $association['strict'] || $association['strict'] === false) {
+                    if(! isset($association['strict']) || $association['strict'] === false) {
                         $joins .= " LEFT JOIN [$tableNameJoin] AS [$assc_name] ON [$modelName].[$foreignKey] = [$assc_name].[$key]";
                     } else {
                         $joins .= " INNER JOIN [$tableNameJoin] AS [$assc_name] ON [$modelName].[$foreignKey] = [$assc_name].[$key]";
@@ -107,7 +117,7 @@ class QueryMaker {
                     $key = $association['key'];
 
                     $columnsJoins .= $this->columnsJoin($association['schema']::$columns, $assc_name);
-                    if(! $association['strict'] || $association['strict'] === false) {
+                    if(! isset($association['strict']) || $association['strict'] === false) {
                         $joins .= " LEFT JOIN [$tableNameJoin] AS [$assc_name] ON [$modelName].[$foreignKey] = [$assc_name].[$key]";
                     } else {
                         $joins .= " INNER JOIN [$tableNameJoin] AS [$assc_name] ON [$modelName].[$foreignKey] = [$assc_name].[$key]";
@@ -119,7 +129,7 @@ class QueryMaker {
                     $key = $association['key'];
 
                     $columnsJoins .= $this->columnsJoin($association['schema']::$columns, $assc_name);
-                    if(! $association['strict'] || $association['strict'] === false) {
+                    if(! isset($association['strict']) || $association['strict'] === false) {
                         $joins .= " LEFT JOIN [$tableNameJoin] AS [$assc_name] ON [$modelName].[$foreignKey] = [$assc_name].[$key]";
                     } else {
                         $joins .= " INNER JOIN [$tableNameJoin] AS [$assc_name] ON [$modelName].[$foreignKey] = [$assc_name].[$key]";
@@ -134,7 +144,7 @@ class QueryMaker {
                     $throughKey = $association['throughKey'];
                     $key = $association['key'];
 
-                    if(! $association['strict'] || $association['strict'] === false) {
+                    if(! isset($association['strict']) || $association['strict'] === false) {
                         $joins .= " LEFT JOIN [$throughTableName] AS [$throughModelName] ON [$modelName].[$foreignKey] = [$throughModelName].[$throughForeignKey]";
                         $joins .= " LEFT JOIN [$tableNameJoin] AS [$assc_name] ON [$throughModelName].[$throughKey] = [$assc_name].[$key]";
                     } else {
@@ -154,7 +164,11 @@ class QueryMaker {
         return $this;
     }
 
-    private function columnsJoin(array $columnsJoin, string $associationName) {
+    private function columnsJoin(array $columnsJoin, string $associationName): string {
+        if(! $this->queryArray['count']) {
+            return "";
+        }
+
         $columns = '';
         foreach (array_keys($columnsJoin) as $key) {
             $columns .= "[$associationName].[$key] AS [$associationName.$key],";
@@ -162,7 +176,7 @@ class QueryMaker {
         return $columns;
     }
 
-    public function orderBy(array $orderByArray) {
+    public function orderBy(array $orderByArray): QueryMaker {
         $orderBy = '';
         foreach ($orderByArray as $key => $value) {
             if(\gettype($key) !== 'integer') {
@@ -184,7 +198,7 @@ class QueryMaker {
         return $this;
     }
 
-    public function pagination(int $pag, int $maxPerPage) {
+    public function pagination(int $pag, int $maxPerPage): QueryMaker {
         $offset = $maxPerPage * ($pag-1);
         $limit = ($maxPerPage * $pag);
         $pagination = "OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY";
@@ -192,7 +206,7 @@ class QueryMaker {
         return $this;
     }
 
-    public function groupBy(array $brouprByArray) {
+    public function groupBy(array $brouprByArray): QueryMaker {
         $brouprBy = '';
         foreach ($brouprByArray as $key => $value) {
             $e = \explode('.', $value);
@@ -206,16 +220,20 @@ class QueryMaker {
         return $this;
     }
 
-    public function end() {
+    public function end() 
+    {
         $query = $this->makeQuery();
         SimpleORM::$lastQuery = $query;
+        if($this->queryArray['count']) {
+            return QueryRow::count($query, $this->arrayValuesPrepare);
+        }
         if($this->queryArray['join'] !== null)
             return QueryRow::executeWithJoins($this->schema, $query, $this->arrayValuesPrepare);
         else
             return QueryRow::execute($query, $this->arrayValuesPrepare);
     }
 
-    private function makeQuery() {
+    private function makeQuery(): string {
         $tableName = $this->schema::$tableName;
         $modelName = $this->schema::$modelName;
 
@@ -229,6 +247,7 @@ class QueryMaker {
                 if($this->queryArray['top'] !== null) {
                     $query .= ' TOP '.$this->queryArray['top'];
                 }
+
                 $query .= " $columns";
                 if($this->queryArray['columns-joins'] !== null) {
                     $query .= ", ".$this->queryArray['columns-joins'];
@@ -265,24 +284,41 @@ class QueryMaker {
             break;
             case QueryType::DELETE:
             break;
+            case QueryType::COUNT:
+                $query = "SELECT COUNT(*) AS [COUNT] FROM [$tableName] AS [$modelName]";
+                if($this->queryArray['join'] !== null)
+                    $query .= ' '.$this->queryArray['join'];
+                if($this->queryArray['where'] !== null)
+                    $query .= ' WHERE '.$this->queryArray['where'];
+                if($this->queryArray['groupby'] !== null)
+                    $query .= ' GROUP BY '.$this->queryArray['groupby'];
+                if($this->queryArray['having'] !== null)
+                    $query .= ' HAVING '.$this->queryArray['having'];
+            break;
         }
 
         return $query.';';
     }
 
-    private function columns() {
-        $modelName = $this->schema::$modelName;
-        $tableColumns = $this->schema::$columns;
-        $columns = '';
-        foreach (array_keys($tableColumns) as $key) {
-            $columns .= "[$modelName].[$key],";
+    private function columns(): string {
+        if($this->queryArray['count']) {
+            return "";
         }
-        $columns = \rtrim($columns, ',');
-        return $columns;
+
+        $modelName = $this->schema::$modelName;
+        $tableColumns = array_keys($this->schema::$columns);
+        $columns = (count($this->onlyColumns) <= 0) ? $tableColumns : $this->onlyColumns;
+
+        $stringcolumns = '';
+        foreach ($columns as $key) {
+            if(array_search($key, $tableColumns) !== null) {
+                $stringcolumns .= "[$modelName].[$key],";
+            }
+        }
+
+        $stringcolumns = \rtrim($stringcolumns, ',');
+        return $stringcolumns;
     }
-
-
-
 
     private static function valueToSQL(string $columnType, $originalValue) {
         $value = $originalValue;
@@ -300,8 +336,10 @@ class QueryMaker {
 }
 
 abstract class QueryType {
-    public const SELECT = 0;
-    public const CREATE = 1;
-    public const UPDATE = 2;
-    public const DELETE = 3;
+    public const SELECT = "SELECT";
+    public const CREATE = "CREATE";
+    public const UPDATE = "UPDATE";
+    public const DELETE = "DELETE";
+
+    public const COUNT = "SELECT-COUNT";
 }

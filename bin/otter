@@ -9,22 +9,23 @@ foreach ($argv as $arg) {
         $arguments[$arg[0]] = $arg[0];
 }
 
-if(! isset($arguments['--host']) || ! isset($arguments['--db']) || ! isset($arguments['--user']) || ! isset($arguments['--path']) || ! isset($arguments['--model']) || ! isset($arguments['--table'])) {
-    echo "!! Arguments required: --host, --db, --user, --password, --path, --model, --table";
-    exit();
-}
+if(isset($arguments['generate:schema:db'])) {
+    
+    if(! isset($arguments['--host']) || ! isset($arguments['--db']) || ! isset($arguments['--user']) || ! isset($arguments['--path']) || ! isset($arguments['--model']) || ! isset($arguments['--table'])) {
+        echo "!! Arguments required: --host, --db, --user, --password, --path, --model, --table\n";
+        exit();
+    }
 
-$host = $arguments['--host'];
-$dbName = $arguments['--db'];
-$dbUser = $arguments['--user'];
-$dbPass = $arguments['--password'];
+    $host = $arguments['--host'];
+    $dbName = $arguments['--db'];
+    $dbUser = $arguments['--user'];
+    $dbPass = $arguments['--password'];
 
-$path = __DIR__.'/../'.$arguments['--path'];
-$modelName = $arguments['--model'];
-$tableName = $arguments['--table'];
-$schemaName = $modelName.'Schema';
+    $path = __DIR__.'/../'.$arguments['--path'];
+    $modelName = $arguments['--model'];
+    $tableName = $arguments['--table'];
+    $schemaName = $modelName.'Schema';
 
-try {
     $conn = new \PDO( "sqlsrv:server=$host;Database=$dbName", $dbUser, $dbPass, ["CharacterSet" => 'UTF-8']);
     $conn->setAttribute(\PDO::SQLSRV_ATTR_ENCODING, \PDO::SQLSRV_ENCODING_UTF8);
 
@@ -62,203 +63,39 @@ try {
     $rowPK = $stmt->fetch(\PDO::FETCH_ASSOC);
     $PrimaryKey = ($rowPK !== null && count($rowPK) > 0) ? $rowPK['Column_Name'] : null;
 
-    function startsWith(string $startString, string $text) {
-        $len = strlen($startString);
-        return (substr($text, 0, $len) === $startString);
-    }
+    require_once __DIR__."/../src/bin/schema.php";
 
-    function endsWith(string $endString, string $text) {
-        $len = strlen($endString);
-        if ($len == 0) {
-            return true;
-        }
-        return (substr($text, -$len) === $endString);
-    }
-
+    $generate_schema = new GenerateSchema($modelName, $rows);
+    $fileData = $generate_schema->sql_to_schema($tableName, $rowPK);
     $file = fopen("$path/$schemaName.php", 'w');
-    fwrite($file, "<?php\n\nuse Otter\ORM\Schema;\nuse Otter\ORM\ColumnType;\nuse Otter\ORM\ColumnDefaultValue;\n\nclass $schemaName extends Schema {\n");
-    fwrite($file, "\tpublic static \$modelName = '$modelName';\n\tpublic static \$tableName = '$tableName';\n");
-    fwrite($file, "\tpublic static \$columns = [\n");
-    foreach ($rows as $row) {
-        fwrite($file, "\t\t'".$row['COLUMN_NAME']."' => [\n");
-        $DATA_TYPE = '';
-        switch($row['DATA_TYPE']) {
-            // exact numerics
-            case "bigint":
-                $DATA_TYPE = 'ColumnType::INT';
-                break;
-            case "int":
-                $DATA_TYPE = 'ColumnType::INT';
-                break;
-            case "bit":
-                $DATA_TYPE = 'ColumnType::BOOLEAN';
-                break;
-            case "decimal":
-                $DATA_TYPE = 'ColumnType::DECIMAL';
-                break;
-            case "money":
-                $DATA_TYPE = 'ColumnType::MONEY';
-                break;
-
-            // approximate numerics
-            case "float":
-                $DATA_TYPE = 'ColumnType::FLOAT';
-                break;
-            case "real":
-                $DATA_TYPE = 'ColumnType::FLOAT';
-                break;
-
-            // date and time
-            case "date":
-                $DATA_TYPE = 'ColumnType::DATE';
-                break;
-            case "datetimeoffset":
-                $DATA_TYPE = 'ColumnType::DATETIME';
-                break;
-            case "datetime2":
-                $DATA_TYPE = 'ColumnType::DATETIME';
-                break;
-            case "smalldatetime":
-                $DATA_TYPE = 'ColumnType::DATETIME';
-                break;
-            case "datetime":
-                $DATA_TYPE = 'ColumnType::DATETIME';
-                break;
-            case "time":
-                $DATA_TYPE = 'ColumnType::TIME';
-                break;
-
-            // character strings
-            case "char":
-                $DATA_TYPE = 'ColumnType::CHAR';
-                break;
-            case "varchar":
-                $DATA_TYPE = 'ColumnType::STRING';
-                break;
-            case "text": break;
-
-            // unicode character strings
-            case "nchar":
-                $DATA_TYPE = 'ColumnType::STRING';
-                break;
-            case "nvarchar":
-                $DATA_TYPE = 'ColumnType::STRING';
-                break;
-            case "ntext":
-                $DATA_TYPE = 'ColumnType::STRING';
-                break;
-
-            // binary strings
-            case "binary":
-                echo "Unsopported DATA_TYPE: ON [$tableName].".$row['COLUMN_NAME ']." .-";
-                exit();
-                break;
-            case "varbinary":
-                echo "Unsopported DATA_TYPE: ON [$tableName].".$row['COLUMN_NAME ']." .-";
-                exit();
-                break;
-            case "image":
-                echo "Unsopported DATA_TYPE: ON [$tableName].".$row['COLUMN_NAME ']." .-";
-                exit();
-                break;
-
-            // other data types
-            case "cursor":
-                echo "Unsopported DATA_TYPE: ON [$tableName].".$row['COLUMN_NAME ']." .-";
-                exit();
-                break;
-            case "rowvarsion":
-                echo "Unsopported DATA_TYPE: ON [$tableName].".$row['COLUMN_NAME ']." .-";
-                exit();
-                break;
-            case "hierarchyid":
-                echo "Unsopported DATA_TYPE: ON [$tableName].".$row['COLUMN_NAME ']." .-";
-                exit();
-                break;
-            case "uniqueidentifier":
-                echo "Unsopported DATA_TYPE: ON [$tableName].".$row['COLUMN_NAME ']." .-";
-                exit();
-                break;
-            case "sql_variant":
-                echo "Unsopported DATA_TYPE: ON [$tableName].".$row['COLUMN_NAME ']." .-";
-                exit();
-                break;
-            case "xml": break;
-            case "Spatial Geometry Types":
-                echo "Unsopported DATA_TYPE: ON [$tableName].".$row['COLUMN_NAME ']." .-";
-                exit();
-                break;
-            case "Spatial Geografy Types":
-                echo "Unsopported DATA_TYPE: ON [$tableName].".$row['COLUMN_NAME ']." .-";
-                exit();
-                break;
-            case "table":
-                echo "Unsopported DATA_TYPE: ON [$tableName].".$row['COLUMN_NAME ']." .-";
-                exit();
-                break;
-            default:
-                echo "Unsopported DATA_TYPE: ON [$tableName].".$row['COLUMN_NAME ']." .-";
-                exit();
-                break;
-        }
-        fwrite($file, "\t\t\t'type' => $DATA_TYPE,\n");
-        if($PrimaryKey !== null && $PrimaryKey === $row['COLUMN_NAME']) {
-            fwrite($file, "\t\t\t'primaryKey' => true,\n");
-        }
-        if($row['CHARACTER_MAXIMUM_LENGTH'] !== null && $row['CHARACTER_MAXIMUM_LENGTH'] !== '') {
-            fwrite($file, "\t\t\t'length' => ".$row['CHARACTER_MAXIMUM_LENGTH'].",\n");
-        }
-        if($row['IS_NULLABLE'] === 'YES') {
-            fwrite($file, "\t\t\t'allowNull' => true,\n");
-        }
-        if($row['COLUMN_DEFAULT'] !== null) {
-            if(startsWith("(N'", $row['COLUMN_DEFAULT'])) { // string
-                $pos = (strpos($row['COLUMN_DEFAULT'], "')")-3);
-                $defaultValue = substr($row['COLUMN_DEFAULT'], 3, $pos);
-                fwrite($file, "\t\t\t'defaultValue' => '$defaultValue',\n");
-            }
-            else if(startsWith('((', $row['COLUMN_DEFAULT'])) { // number
-                $pos = (strpos($row['COLUMN_DEFAULT'], "))")-2);
-                $defaultValue = substr($row['COLUMN_DEFAULT'], 2, $pos);
-                fwrite($file, "\t\t\t'defaultValue' => $defaultValue,\n");
-            }
-            else if(endsWith('())', $row['COLUMN_DEFAULT'])) { //function
-                $pos = (strpos($row['COLUMN_DEFAULT'], "())")-1);
-                $defaultValue = substr($row['COLUMN_DEFAULT'], 1, $pos);
-                $defaultValueOtter = '';
-                switch(strtoupper($defaultValue)) {
-                    case "GETDATE":
-                        $defaultValueOtter = "ColumnDefaultValue::NOW";
-                        break;
-                    case "GETUTCDATE":
-                        $defaultValueOtter = "ColumnDefaultValue::NOW_UTC";
-                        break;
-                    default:
-                        $defaultValueOtter = "'$defaultValue'";
-                        break;
-                }
-                fwrite($file, "\t\t\t'defaultValue' => $defaultValueOtter,\n");
-            }
-            else {
-                fwrite($file, "\t\t\t'defaultValue' => '".$row['COLUMN_DEFAULT']."',\n");
-            }
-        }
-        if(($row['IS_NULLABLE'] === 'YES') || ($row['COLUMN_DEFAULT'] !== '' && $row['COLUMN_DEFAULT'] !== null)) {
-            fwrite($file, "\t\t\t'required' => false,\n");
-        } else {
-            fwrite($file, "\t\t\t'required' => true,\n");
-        }
-        fwrite($file, "\t\t],\n");
-    }
-    fwrite($file, "\t];\n\tpublic static \$associations = [];\n}\n\nreturn $schemaName::class;\n");
+    fwrite($file, $fileData);
     fclose($file);
 
-} catch(\Exception $e) {
-    echo "Error: ";
-    print_r($e);
-    exit();
-}
+} else if(isset($arguments['generate:schema'])) {
 
+    if(! isset($arguments['--path']) || ! isset($arguments['--model']) || ! isset($arguments['--attributes'])) {
+        echo "!! Arguments required: --path, --model, --attributes\n";
+        exit();
+    }
+
+    $path = __DIR__.'/../'.$arguments['--path'];
+    $modelName = $arguments['--model'];
+    $tableName = (isset($arguments['--table'])) ? $arguments['--table'] : $modelName;
+    $attributes = $arguments['--attributes'];
+    $schemaName = $modelName.'Schema';
+
+    require_once __DIR__."/../src/bin/schema.php";
+
+    $rows = explode(',', $attributes);
+    $generate_schema = new GenerateSchema($modelName, $rows);
+    $fileData = $generate_schema->new_schema($tableName);
+    $file = fopen("$path/$schemaName.php", 'w');
+    fwrite($file, $fileData);
+    fclose($file);
+
+} else {
+    echo "missing arguments!\n";
+}
 
 /*
 

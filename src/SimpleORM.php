@@ -7,10 +7,10 @@ namespace Otter\ORM;
  */
 class SimpleORM {
 
-    public static $schemas;
-    public static $connection;
-    public static $lastQuery;
-    public static $lastQueryErrorInfo;
+    public static $schemas = [];
+    public static $connection = null;
+    public static $lastQuery = null;
+    public static $lastQueryErrorInfo = null;
 
     private static $modelsPath;
 
@@ -20,6 +20,9 @@ class SimpleORM {
         self::$connection = $db->connect();
     }
 
+    /**
+     * Load and configure schemas
+     */
     public function schemas(string $modelsPath) {
         if ($handle = opendir($modelsPath)) {
             while (false !== ($entry = readdir($handle))) {
@@ -32,6 +35,13 @@ class SimpleORM {
         }
     }
 
+    /**
+     * A optional function.
+     * Generates views that will be used in queries.
+     * Recommended.
+     */
+    public function generateViews() {}
+
     public static function lastQuery() {
         return self::$lastQuery;
     }
@@ -40,11 +50,6 @@ class SimpleORM {
         return self::$lastQueryErrorInfo;
     }
 
-    /**
-     * Get a model.
-     * @param {string} modelName
-     * @return Model
-     */
     public static function get(string $modelName): ?Model {
         if(! array_key_exists($modelName, self::$schemas)) {
             return null;

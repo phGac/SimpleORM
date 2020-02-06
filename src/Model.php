@@ -5,7 +5,6 @@ namespace Otter\ORM;
 class Model {
 
     protected $schema;
-    protected $lastQuery;
 
     public function __construct($schema) {
         $this->schema = $schema;
@@ -35,73 +34,29 @@ class Model {
         return "Model Object [$tableName] {\n\tcolumns => [$columns\n\t]\n}";
     }
 
-    public function toPlainObject() {
-        $attributes = get_object_vars($this);
-        $plainObject = new PlainModel();
-        foreach ($attributes as $key => $value) {
-            $plainObject->$key = $value;
-        }
-        return $plainObject;
+    public function find(array $onlyColumns = []): QueryMaker {
+        return (new QueryMaker($this->schema))->select($onlyColumns);
     }
 
-    public function find() {
-        return (new QueryMaker($this->schema))->select();
+    public function findAll(array $onlyColumns = []): QueryMaker {
+        return (new QueryMaker($this->schema))->selectAll($onlyColumns);
     }
 
-    public function findAll() {
-        return (new QueryMaker($this->schema))->selectAll();
+    public function count(): QueryMaker {
+        return (new QueryMaker($this->schema))->count();
     }
 
-    /*
-    public function selectAll(array $options = [], bool $plainObjects = true) {
-        $sql = QueryMaker::selectAll($this->schema, $options);
-        $this->lastQuery = $sql;
-        return \Otter\ORM\QueryRow::db($sql, [], $plainObjects);
+    public function create(array $columns): bool {
+        return (new QueryMaker($this->schema))->create($columns);
     }
 
-    public function select(array $options = [], bool $plainObject = true) {
-        $sql = QueryMaker::select($this->schema, $options);
-        $this->lastQuery = $sql;
-        return \Otter\ORM\QueryRow::db($sql, [], $plainObject);
+    public function update(array $columns): bool {
+        return (new QueryMaker($this->schema))->update($columns);
     }
 
-    public function create(array $columns) {
-        $sql = QueryMaker::insert($this->tableName, $this->columns, $columns);
-        $this->lastQuery = $sql;
-        return \Otter\ORM\QueryRow::query($sql, []);
+    public function delete(array $where = []): bool {
+        return (new QueryMaker($this->schema))->delete($where);
     }
-
-    public function update(array $columns, array $options = []) {
-        $sql = QueryMaker::update($this->schema, $columns, $options);
-        $this->lastQuery = $sql;
-        return \Otter\ORM\QueryRow::query($sql, []);
-    }
-
-    public function delete(array $options = []) {
-        $sql = QueryMaker::delete($this->schema, $options);
-        $this->lastQuery = $sql;
-        return \Otter\ORM\QueryRow::query($sql, []);
-    }
-
-    public function count(array $options = []): int {
-        $sql = QueryMaker::count($this->schema, $options);
-        $this->lastQuery = $sql;
-        $count = \Otter\ORM\QueryRow::db($sql, []);
-        return (int) $count[0]->total;
-    }
-    */
 }
 
-class PlainModel {
-
-    public function __toString() {
-        $attributes = get_object_vars($this);
-        $text = "\nPlain Object {";
-        foreach ($attributes as $key => $value) {
-            $text .= "\n\t$key:\t$value";
-        }
-        $text .= "\n}";
-        return $text;
-    }
-
-}
+class PlainModel {}

@@ -89,4 +89,21 @@ class QueryRow {
         }
     }
 
+    public static function count(string $sql, array $columns = []): ?int {
+        $conn = SimpleORM::$connection;
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($columns);
+
+        if ($stmt->errorCode() !== '00000'){
+            $info = $conn->errorInfo();
+            SimpleORM::$lastQueryErrorInfo = $info;
+            return null;
+        } else {
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $count = (int) $row['COUNT'];
+            return $count;
+        }
+        
+    }
+
 }
