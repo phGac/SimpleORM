@@ -55,23 +55,36 @@ class QueryMaker {
 
     public function where(array $whereArray): QueryMaker {
         $where = '';
-        foreach ($whereArray as $key => $value) {
-            $tableAndColumn = \explode('.', $key);
-            $key = $tableAndColumn[1];
-            $model = $tableAndColumn[0];
-            if(\gettype($value) === 'array') {
-                $simbol = \strtoupper($value[0]);
-                $value = $value[1];
-                $where .= "[$model].[$key] $simbol :$key AND ";
-            } else {
-                $where .= "[$model].[$key] = :$key AND ";
+        foreach ($whereArray as $key => $value) {            
+            if(\gettype($key) !== 'integer') {
+                $tableAndColumn = \explode('.', $key);
+                $key = $tableAndColumn[1];
+                $model = $tableAndColumn[0];
+                if(\gettype($value) === 'array') {
+                    $simbol = \strtoupper($value[0]);
+                    $value = $value[1];
+                    $where .= "[$model].[$key] $simbol :$key AND ";
+                } else if($value !== null) {
+                    $where .= "[$model].[$key] = :$key AND ";
+                }
+            }
+            else {
+                switch(\strtoupper($value)) {
+                    case 'OR': 
+                        $where = \rtrim($where, 'AND ');
+                        $where .= " OR ";
+                    break;
+                }
+                continue;
             }
 
-            if(! array_key_exists($model, $this->schema::$associations)) {
-                $type = $this->schema::$columns[$key]['type'];
-                $value = $this->valueToSQL($type, $value);
+            if(! array_key_exists($key, $this->schema::$columns)) {
+                if(array_key_exists($model, $this->schema::$associations)) {
+                    $type = $this->schema::$associations[$model]['schema']::$columns[$key]['type'];
+                    $value = $this->valueToSQL($type, $value);
+                }
             } else {
-                $type = $this->schema::$associations[$model]['schema']::$columns[$key]['type'];
+                $type = $this->schema::$columns[$key]['type'];
                 $value = $this->valueToSQL($type, $value);
             }
 
@@ -94,9 +107,13 @@ class QueryMaker {
             $assc_model = $join[0];
             $assc_name = $join[1];
 
+            $last_association;
             $association;
             if($assc_model === $modelName) {
                 $association = $associations[$assc_name];
+            } else if (! array_key_exists($assc_name, $this->schema::$associations)) {
+                $modelName = $assc_model; // $last_association['schema']::$modelName;
+                $association = $last_association['schema']::$associations[$assc_name];
             }
             switch($association['type']) {
                 case ModelAssociation::HasOne:
@@ -155,8 +172,9 @@ class QueryMaker {
                     $columnsJoins .= $this->columnsJoin($association['schema']::$columns, $assc_name);
                     break;
             }
+            $last_association = $association;
         }
-
+        
         $columnsJoins = \rtrim($columnsJoins, ',');
         $this->queryArray['columns-joins'] = $columnsJoins;
         $this->queryArray['join'] = $joins;
@@ -164,15 +182,33 @@ class QueryMaker {
         return $this;
     }
 
-    private function columnsJoin(array $columnsJoin, string $associationName): string {
-        if(! $this->queryArray['count']) {
-            return "";
+    private function columnsJoin(array $columnsJoin, string $associationName): ?string {
+        if($this->queryArray['count']) {
+            return null;
         }
 
         $columns = '';
-        foreach (array_keys($columnsJoin) as $key) {
-            $columns .= "[$associationName].[$key] AS [$associationName.$key],";
+        if(count($this->onlyColumns) === 0) {
+            foreach (array_keys($columnsJoin) as $key) {
+                $columns .= "[$associationName].[$key] AS [$associationName.$key],";
+            }
+        } else {
+            /*
+            $keys = array_keys($columnsJoin);
+            foreach ($this->onlyColumns as $key => $value) {
+                $value = explode('.', $value);
+                if(count($value) > 1) {
+                    $value_name = $value[0];
+                    $value_key = $value[1];
+                    if($associationName === $value_name && array_key_exists($value_key, $columnsJoin)) {
+                        $columns .= "[$associationName].[$value_key] AS [$associationName.$value_key],";
+                    }
+                }
+                
+            }
+            */
         }
+        
         return $columns;
     }
 
@@ -224,6 +260,13 @@ class QueryMaker {
     {
         $query = $this->makeQuery();
         SimpleORM::$lastQuery = $query;
+        $this->arrayValuesPrepare = array_map(function($val) {
+            if(gettype($val) === 'boolean') {
+                return (int) $val;
+            }
+            return $val;
+        }, $this->arrayValuesPrepare);
+
         if($this->queryArray['count']) {
             return QueryRow::count($query, $this->arrayValuesPrepare);
         }
@@ -249,7 +292,7 @@ class QueryMaker {
                 }
 
                 $query .= " $columns";
-                if($this->queryArray['columns-joins'] !== null) {
+                if($this->onlyColumns === null && $this->queryArray['columns-joins'] !== null) {
                     $query .= ", ".$this->queryArray['columns-joins'];
                 }
                 $query .= " FROM [$tableName] AS [$modelName]";
@@ -311,7 +354,12 @@ class QueryMaker {
 
         $stringcolumns = '';
         foreach ($columns as $key) {
-            if(array_search($key, $tableColumns) !== null) {
+            $array = explode('.', $key);
+            if(count($array) > 1) {
+                $model_name = $array[0];
+                $column_name = $array[1];
+                $stringcolumns .= "[$model_name].[$column_name] AS [$model_name.$column_name],";
+            } else if(array_search($key, $tableColumns) !== null) {
                 $stringcolumns .= "[$modelName].[$key],";
             }
         }

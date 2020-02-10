@@ -29,7 +29,7 @@ class QueryRow {
         $stmt->execute($columns);
 
         if ($stmt->errorCode() !== '00000'){
-            $info = $conn->errorInfo();
+            $info = $stmt->errorInfo();
             SimpleORM::$lastQueryErrorInfo = $info;
             return null;
         } else {

@@ -12,7 +12,7 @@
         }
     ],
     "autoload": {
-        "psr-4": { "Otter\\ORM": "src/" }
+        "psr-4": { "Otter\\ORM\\": "src/" }
     },
     "require": {
         "php" : "^7.0"

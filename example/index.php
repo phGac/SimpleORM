@@ -7,9 +7,9 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-require __DIR__."/../loader.php";
+require __DIR__."/../vendor/autoload.php";
 
-$orm = new \Otter\ORM\SimpleORM('localhost', 'store', 'sa', 'passWORD.123');
+$orm = new \Otter\ORM\SimpleORM('localhost', 'store', 'sa', 'santiagosur');//passWORD.123
 $orm->schemas(__DIR__.'/schemas');
 
 
@@ -17,12 +17,7 @@ $Product = \Otter\ORM\SimpleORM::get('Product');
 $Order = \Otter\ORM\SimpleORM::get('Order');
 $Supplier = \Otter\ORM\SimpleORM::get('Supplier');
 
-/*
-echo "<pre>";
-print_r($object);
-echo "</pre>";
 
-/*
 $orders = $Order->find([ 'Id', 'TotalAmount' ])
                 ->end();
 
@@ -34,7 +29,7 @@ if($orders !== null) {
     $info = \Otter\ORM\SimpleORM::lastQueryErrorInfo(); // array
     print_r($info);
 }
-*/
+
 /*
 $count = $Order->count()
                 ->join([ 'Order.products' ])
@@ -109,6 +104,5 @@ $products = $Product->findAll()
 echo "<pre>";
 print_r($products);
 echo "</pre>";
-*
-echo "Last Query: ".\Otter\ORM\SimpleORM::lastQuery();
 */
+echo "Last Query: ".\Otter\ORM\SimpleORM::lastQuery();

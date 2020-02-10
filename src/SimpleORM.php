@@ -58,4 +58,9 @@ class SimpleORM {
         }
     }
 
+    public static function db(string $sqlQuery, array $columns = []) {
+        self::$lastQuery = $sqlQuery;
+        return QueryRow::execute($sqlQuery, $columns);
+    }
+
 }
