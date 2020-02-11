@@ -3,22 +3,28 @@
 This is a simple ORM with PHP for SQL Server without dependencies.
 
 - [installation](#Installation)
-- [requeriments](#Requeriments)
-- [SELECT](#SELECT)
-- [CREATE](#CREATE)
-- [UPDATE](#UPDATE)
-- [DELETE](#DELETE)
+  - [requeriments](#Requeriments)
+- [How to Use](#How-to-Use)
+  - [SELECT](#SELECT)
+  - [CREATE](#CREATE)
+  - [UPDATE](#UPDATE)
+  - [DELETE](#DELETE)
+- [Relationships](#Relationships)
+  - [Belongs To](#Belongs-To)
+  - [Belongs To Many](#Belongs-To-Many)
+  - [Has One](#Has-One)
+  - [Has Many](#Has-Many)
+- [Libre Query](#Libre-Query)
 
 ## Installation
 
 ...
 
-## Requeriments
+### Requeriments
 
 | Requeriment | Version | Info |
 | ----------- | ------- | ---- |
 | PHP | 7.0^ | - |
-| PDO | - | - |
 | PDO_SQLSRV | 4.0^ | It depends on the PHP version |
 
 [download and configure PDO_SQLSRV](https://docs.microsoft.com/en-us/sql/connect/php/example-application-pdo-sqlsrv-driver "download and configure PDO_SQLSRV")
@@ -46,7 +52,7 @@ We need an folder with schemas of database.
 
     $orm->schemas(__DIR__.'/schemas'); // path to configuration files schemas
 
-example
+schema example ( schemas/UserSchema.php )
 
     <?php
 
@@ -63,6 +69,12 @@ example
                 'type' => ColumnsType::INT,
                 'primaryKey' => true,
                 'required' => true
+            ],
+            'id_role' => [
+                'type' => ColumnsType::INT,
+                'required' => true,
+                'allowNull' => false,
+                'defaultValue' => 1,
             ],
             'name' => [
                 'type' => ColumnType::STRING,
@@ -111,6 +123,8 @@ example
 ## Queries
 
 ### SELECT
+
+Simple examples
 
     $users = $User->find()
                   ->end();
@@ -189,6 +203,16 @@ Group by:
         ])
         ->end();
 
+Count data:
+
+    $User->count()
+         ->where([
+            'country' => 'EEUU'
+         ])
+         ->end();
+
+- This returns a number
+
 Relations:
 
     $User->find()
@@ -197,4 +221,156 @@ Relations:
          ])
          ->end();
 
-- The join dependens of the configuration of schemas.
+- The join internals uses dependens of the configuration of schemas.
+- [Go to relations for more details](#Relations)
+
+### CREATE
+
+    $User->create([
+        'name' => 'Joe',
+        'country' => 'France',
+    ]);
+
+- This return a **boolean**
+- No uses the end function
+- Remember: We uses the configuration file. If a column is required and not passed, `DefaultValue` will be used or __NULL__ will be used if allowed `AllowNull`
+
+schemas/UserSchema.php
+
+    ...
+    public static $columns = [
+        ...
+        'email' => [
+            'type' => ColumnType::STRING,
+            'allowNull' => false,
+            'required' => false,
+            'defaultValue' => 'email@email.com', // will be used
+        ],
+        ...
+    ];
+    ...
+
+### UPDATE
+
+    $User->update([
+        'country' => 'EEUU',
+    ])
+    ->where([
+        'id' => 1
+    ])
+    ->end();
+
+- **Don't forget** the `where` function if you don't want to update all the data in the table.
+
+### DELETE
+
+    $User->update([
+        'country' => 'EEUU',
+    ])
+    ->where([
+        'id' => 1
+    ])
+    ->end();
+
+- **Don't forget** the `where` function if you don't want to delete all the data in the table.
+
+## Relationships
+
+We uses 4 types of relations:
+
+- BelongsTo
+- BelongsToMany
+- HasOne
+- HasMany
+
+### Belongs To
+
+This is used for a relation like 1:1 or 1:1. For example, a user can have one or more roles (depending on the design). In both cases, we use BelongsTo in the user scheme.
+
+schemas/UserSchema.php
+
+    ...
+    public static $associations = [
+        'role' => [                     // <= association nickname
+            'type' => ModelAssociation::BelongsTo,
+            'schema' => RoleSchema::class, // Internal use. Very important
+            'foreignKey' => 'id_role',  // Foreign Key (UserSchema)
+            'key' => 'id',               // Key (RoleSchema)
+            'strict' => true,           // optional
+        ],
+        ...
+    ];
+    ...
+
+- The `strict` option force to use Inner Join in select. By default we use _LEFT JOIN_
+
+### Belongs To Many
+
+This is used for a relation like N:1.
+
+schemas/UserSchema.php
+
+    ...
+    public static $associations = [
+        'role' => [                     // <= association nickname
+            'type' => ModelAssociation::BelongsToMany,
+            'schema' => RoleSchema::class, // Internal use. Very important
+            'foreignKey' => 'id_role',  // Foreign Key (UserSchema)
+            'key' => 'id',               // Key (RoleSchema)
+            'strict' => true,           // optional
+        ],
+        ...
+    ];
+    ...
+
+- The `strict` option force to use Inner Join in select. By default we use _LEFT JOIN_
+
+### Has One
+
+This is used for a relation like 1:1. For example, a book have one author (usually).
+
+schemas/BookSchema.php
+
+    ...
+    public static $associations = [
+        'author' => [                     // <= association nickname
+            'type' => ModelAssociation::HasOne,
+            'schema' => AuthorSchema::class, // Internal use. Very important
+            'foreignKey' => 'id_author',  // Foreign Key (UserSchema)
+            'key' => 'id',               // Key (RoleSchema)
+            'strict' => true,           // optional
+        ],
+        ...
+    ];
+    ...
+
+- The `strict` option force to use Inner Join in select. By default we use _LEFT JOIN_
+
+### Has Many
+
+This is used for a relation like 1:N. For example, a book have one author (usually).
+
+schemas/BookSchema.php
+
+    ...
+    public static $associations = [
+        'author' => [                     // <= association nickname
+            'type' => ModelAssociation::HasOne,
+            'schema' => AuthorSchema::class, // Internal use. Very important
+            'foreignKey' => 'id_author',  // Foreign Key (BookSchema)
+            'key' => 'id',               // Key (AuthorSchema)
+            'strict' => true,           // optional
+        ],
+        ...
+    ];
+    ...
+
+- The `strict` option force to use Inner Join in select. By default we use _LEFT JOIN_
+
+## Libre Query
+
+If you want, you can generate a query an execute.
+
+    Otter\ORM\SimpleORM::db("SELECT * FROM persons");
+
+- Returns `array|null`
