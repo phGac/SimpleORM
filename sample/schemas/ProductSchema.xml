@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<schema table="Product">
+    <columns>
+        <column name="Id" type="integer">
+            <primary-key>true</primary-key>
+            <required>false</required>
+        </column>
+        <column name="ProductName" type="string">
+            <length>50</length>
+            <required>true</required>
+        </column>
+        <column name="SupplierId" type="integer">
+            <length>50</length>
+            <required>true</required>
+        </column>
+        <column name="UnitPrice" type="decimal">
+            <default-value>0</default-value>
+            <allowNull>true</allowNull>
+            <required>false</required>
+        </column>
+        <column name="Package" type="string">
+            <length>30</length>
+            <allowNull>true</allowNull>
+            <required>false</required>
+        </column>
+        <column name="IsDiscontinued" type="boolean">
+            <default-value>false</default-value>
+            <required>false</required>
+        </column>
+    </columns>
+    <associations>
+        <association name="supplier" type="BelongsTo">
+            <model>Supplier</model>
+            <foreign-key>SupplierId</foreign-key>
+            <key>Id</key>
+        </association>
+        <association name="orders" type="BelongsToMany">
+            <foreign-key>Id</foreign-key>
+            <through>OrderItem</through>
+			<through-bridge>order</through-bridge>
+			<through-key>ProductId</through-key>
+		</association>
+    </associations>
+</schema>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema table="OrderItem">
+    <columns>
+		<column name="Id" type="integer">
+			<primary-key>TRUE</primary-key>
+		</column>
+		<column name="OrderId" type="integer"/>
+		<column name="ProductId" type="integer"/>
+		<column name="UnitPrice" type="decimal">
+			<default-value>0</default-value>
+		</column>
+		<column name="Quantity" type="integer">
+			<default-value>1</default-value>
+		</column>
+	</columns>
+    <associations>
+		<association name="order" type="BelongsTo">
+			<model>Order</model>
+            <foreign-key>OrderId</foreign-key>
+            <key>Id</key>
+		</association>
+		<association name="product" type="BelongsTo">
+			<model>Product</model>
+            <foreign-key>ProductId</foreign-key>
+            <key>Id</key>
+		</association>
+	</associations>
+</schema>

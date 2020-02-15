@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema table="Customer">
+    <columns>
+		<column name="Id" type="integer">
+			<primary-key>TRUE</primary-key>
+		</column>
+		<column name="FirstName" type="string">
+			<length>40</length>
+		</column>
+		<column name="LastName" type="string">
+			<length>40</length>
+		</column>
+		<column name="City" type="string">
+			<length>40</length>
+			<allow-null>TRUE</allow-null>
+		</column>
+		<column name="Country" type="string">
+			<length>40</length>
+			<allow-null>TRUE</allow-null>
+		</column>
+		<column name="Phone" type="string">
+			<length>20</length>
+			<allow-null>TRUE</allow-null>
+		</column>
+	</columns>
+    <associations>
+		<association name="orders" type="HasMany">
+			<model>Order</model>
+            <foreign-key>Id</foreign-key>
+            <key>CustomerId</key>
+			<strict>TRUE</strict>
+		</association>
+	</associations>
+</schema>

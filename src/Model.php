@@ -2,61 +2,89 @@
 
 namespace Otter\ORM;
 
-class Model {
+use Otter\ORM\Schema\Schema;
+use Otter\ORM\Query\QuerySelect;
+use Otter\ORM\Query\QueryCreate;
+use Otter\ORM\Query\QueryUpdate;
+use Otter\ORM\Query\QueryDelete;
+use Otter\ORM\Query\QueryCount;
 
+class Model {
     protected $schema;
 
-    public function __construct($schema) {
+    public function __construct(Schema $schema) {
         $this->schema = $schema;
-        $this->lastQuery = '';
-        $this->query = [];
     }
 
-    public function __toString() {
-        $tableName = self::$tableName;
-        $columns = '';
-        foreach ($this->$columns as $key => $value) {
-            $columns .= "\n\t\t$key ";
-            $features = '{';
-            foreach ($value as $k => $v) {
-                if($k === 'references') {
-                    $model = $v['model'];
-                    $foreignKey = $v['foreignKey'];
-                    $features .= "\n\t\t\t$k = $model\[$foreignKey\]";
-                } else {
-                    $features .= "\n\t\t\t$k = $v";
-                }
-            }
-            $features .= "\n\t\t},";
-            $columns .= $features;
-        }
-
-        return "Model Object [$tableName] {\n\tcolumns => [$columns\n\t]\n}";
+    public function find(array $onlyColumns = []): QuerySelect {
+        $querySelect = new QuerySelect($this->schema);
+        $querySelect->find($onlyColumns);
+        return $querySelect;
     }
 
-    public function find(array $onlyColumns = []): QueryMaker {
-        return (new QueryMaker($this->schema))->select($onlyColumns);
+    public function findAll(array $onlyColumns = []): QuerySelect {
+        $querySelect = new QuerySelect($this->schema);
+        $querySelect->findAll($onlyColumns);
+        return $querySelect;
     }
 
-    public function findAll(array $onlyColumns = []): QueryMaker {
-        return (new QueryMaker($this->schema))->selectAll($onlyColumns);
-    }
-
-    public function count(): QueryMaker {
-        return (new QueryMaker($this->schema))->count();
+    public function count(): QueryCount {
+        return new QueryCount($this->schema);
     }
 
     public function create(array $columns): bool {
-        return (new QueryMaker($this->schema))->create($columns);
+        $queryCreate = new QueryCreate($this->schema);
+        return $queryCreate->create($columns);
     }
 
-    public function update(array $columns): bool {
-        return (new QueryMaker($this->schema))->update($columns);
+    public function update(array $columns, array $where): bool {
+        $queryUpdate = new QueryUpdate($this->schema);
+        return $queryUpdate->update($columns)->where($where)->end();
     }
 
-    public function delete(array $where = []): bool {
-        return (new QueryMaker($this->schema))->delete($where);
+    public function updateAll(array $columns): bool {
+        $queryUpdate = new QueryUpdate($this->schema);
+        return $queryUpdate->update($columns)->end();
     }
+
+    public function delete(array $where): bool {
+        $queryDelete = new QueryDelete($this->schema);
+        return $queryDelete->where($where)->end();
+    }
+
+    public function deleteAll(): bool {
+        $queryDelete = new QueryDelete($this->schema);
+        return $queryDelete->end();
+    }
+
+    /*
+    public function build(array $data = []) {
+        $object = new SimpleModel($this->schema);
+        foreach ($this->schema->columns as $key => $value) {
+            $object->$key = (isset($data[$key])) ? $data[$key] : null;
+        }
+        return $object;
+    }
+
+    public function make($object) {
+        $vars = \get_object_vars($object);
+        $queryCreate = new QueryCreate();
+    }
+    */
 }
 
 class PlainModel {}
+
+class SimpleModel {
+    private $schema;
+
+    public function __construct($schema) {
+        $this->schema = $schema;
+    }
+
+    public function __set(string $name, $value) {
+        if(array_key_exists($name, $this->schema->columns)) {
+            $this->$name = $value;
+        }
+    }
+}

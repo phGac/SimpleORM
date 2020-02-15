@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema table="Order">
+    <columns>
+		<column name="Id" type="integer">
+			<primary-key>TRUE</primary-key>
+		</column>
+		<column name="OrderDate" type="datetime">
+			<default-value otter="otter.date.now"/>
+		</column>
+		<column name="OrderNumber" type="string">
+			<length>10</length>
+			<allow-null>TRUE</allow-null>
+		</column>
+		<column name="CustomerId" type="integer"/>
+		<column name="TotalAmount" type="decimal">
+			<allow-null>TRUE</allow-null>
+			<default-value>0</default-value>
+		</column>
+	</columns>
+    <associations>
+		<association name="products" type="BelongsToMany">
+			<foreign-key>Id</foreign-key>
+			<through>OrderItem</through>
+			<through-bridge>product</through-bridge>
+			<through-key>OrderId</through-key>
+		</association>
+	</associations>
+</schema>

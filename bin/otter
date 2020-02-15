@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__."/../autoload.php";
+require_once __DIR__."/../src/Maker/Schema/SchemaMaker.php";
+
 $arguments = [];
 foreach ($argv as $arg) {
     $arg = explode("=", $arg);
@@ -63,11 +66,10 @@ if(isset($arguments['generate:schema:db'])) {
     $rowPK = $stmt->fetch(\PDO::FETCH_ASSOC);
     $PrimaryKey = ($rowPK !== null && count($rowPK) > 0) ? $rowPK['Column_Name'] : null;
 
-    require_once __DIR__."/../src/bin/schema.php";
-
-    $generate_schema = new GenerateSchema($modelName, $rows);
-    $fileData = $generate_schema->sql_to_schema($tableName, $rowPK);
-    $file = fopen("$path/$schemaName.php", 'w');
+    $generate_schema = new \Otter\ORM\Maker\Schema\SchemaMaker($modelName);
+    $xml = $generate_schema->sql_to_schema($rows, $PrimaryKey);
+    $fileData = $generate_schema->prettyXML($xml);
+    $file = fopen("$path/$schemaName.xml", 'w');
     fwrite($file, $fileData);
     fclose($file);
 

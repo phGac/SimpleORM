@@ -1,0 +1,9 @@
+<?php
+
+$argv[] = '--host=127.0.0.1';
+$argv[] = '--db=store';
+$argv[] = '--user=sa';
+$argv[] = '--password=bimmer';
+$argv[] = '--path=sample/schemas';
+
+require_once __DIR__.'/bin/otter';
