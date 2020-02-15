@@ -2,6 +2,7 @@
 
 namespace Otter\ORM\Query;
 
+use Otter\ORM\Exception\QueryException;
 use Otter\ORM\Otter;
 use Otter\ORM\Maker\Query\QueryMaker;
 use Otter\ORM\Schema\Schema;
@@ -37,13 +38,7 @@ class QuerySelect extends Query {
         return $maker->make();
     }
 
-    public function find(array $onlyColumns = []) {
-        $this->onlyColumns = $onlyColumns;
-        $this->query->top = 1;
-        return $this;
-    }
-
-    public function findAll(array $onlyColumns = []) {
+    public function select(array $onlyColumns = []) {
         $this->onlyColumns = $onlyColumns;
         return $this;
     }
@@ -195,6 +190,18 @@ class QuerySelect extends Query {
         $this->query->columnsJoins = $columnsJoins;
         $this->query->joins = $joins;
 
+        return $this;
+    }
+
+    public function pagination(int $pag, int $maxPerPag): QuerySelect {
+        if($pag <= 0) {
+            throw new QueryException("Pagination CANNOT be less than 0. Start at 1.", 1);
+        }
+
+        $offset = ($maxPerPag + ($pag-1));
+        $limit = ($maxPerPag * $pag);
+
+        $this->query->pagination = "OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY";
         return $this;
     }
 

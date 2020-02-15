@@ -57,7 +57,7 @@ XML;
             $max_length = $row['CHARACTER_MAXIMUM_LENGTH'];
             $defaultValue = $this->defaultValue($row['COLUMN_DEFAULT']);
             $allowNull = ($row['IS_NULLABLE'] === 'YES') ? true : false;
-            $required = ($allowNull || ($defaultValue !== '' && $defaultValue !== null)) ? 'false' : 'true';
+            $required = ($allowNull || ($defaultValue !== '' && $defaultValue !== null)) ? false : true;
 
             $this->xml->columns->column[$position]->addAttribute('name', $columnName);
             $this->xml->columns->column[$position]->addAttribute('type', $data_type);
@@ -80,6 +80,8 @@ XML;
                     $this->xml->columns->column[$position]->addChild('default-value', $defaultValue);
                 }
             }
+            if(! $required)
+                $this->xml->columns->column[$position]->addChild('required', 'FALSE');
         }
         
         return $this->xml->asXML();

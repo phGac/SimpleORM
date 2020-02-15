@@ -18,13 +18,14 @@ class Model {
 
     public function find(array $onlyColumns = []): QuerySelect {
         $querySelect = new QuerySelect($this->schema);
-        $querySelect->find($onlyColumns);
+        $querySelect->select($onlyColumns)
+                    ->limit(1);
         return $querySelect;
     }
 
     public function findAll(array $onlyColumns = []): QuerySelect {
         $querySelect = new QuerySelect($this->schema);
-        $querySelect->findAll($onlyColumns);
+        $querySelect->select($onlyColumns);
         return $querySelect;
     }
 

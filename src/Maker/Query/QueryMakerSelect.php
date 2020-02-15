@@ -95,11 +95,17 @@ abstract class QueryMakerSelect {
         if($pagination !== null) {
             $query = "";
             if($orderby === null) {
+                $ok = false;
                 foreach ($columns as $key => $value) {
-                    if(isset($value['primaryKey']) && $value['primaryKey']) {
+                    if($value->primaryKey) {
+                        $ok = true;
                         $query .= " ORDER BY [$modelName].[$key]";
                         break;
                     }
+                }
+                if(! $ok){
+                    $key = (array_keys($columns)[0]);
+                    $query .= " ORDER BY [$modelName].[$key]";
                 }
             }
             $query .= " $pagination";

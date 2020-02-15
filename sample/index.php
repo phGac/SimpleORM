@@ -28,7 +28,8 @@ $Customer = Otter::get('Customer');
 
 $customers = $Customer->findAll()
                     ->include(['orders', 'orders.products'])
-                    ->limit(5)
+                    //->limit(5)
+                    ->pagination(1, 10)
                     ->end();
 echo "<pre>";
 print_r($customers);

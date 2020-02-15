@@ -31,10 +31,10 @@ This is a simple ORM with PHP for SQL Server without dependencies.
 
 ## How to Use
 
-    $orm = new \Otter\ORM\SimpleORM('localhost', 'databaseName', 'sa', 'password');
+    $orm = new \Otter\ORM\Otter('localhost', 'databaseName', 'sa', 'password');
     $orm->schemas(__DIR__.'/schemas');
 
-    $User = \Otter\ORM\SimpleORM::get('User');
+    $User = \Otter\ORM\Otter::get('User');
 
     $users = $User->findAll()
                   ->end();
@@ -42,7 +42,7 @@ This is a simple ORM with PHP for SQL Server without dependencies.
     if($users !== null) {
         print_r($users); // array of objects
     } else {
-        $info = \Otter\ORM\SimpleORM::lastQueryErrorInfo(); // array
+        $info = \Otter\ORM\Otter::lastQueryErrorInfo(); // array
         print_r($info);
     }
 
@@ -52,53 +52,42 @@ We need an folder with schemas of database.
 
     $orm->schemas(__DIR__.'/schemas'); // path to configuration files schemas
 
-schema example ( schemas/UserSchema.php )
+schema example ( schemas/UserSchema.xml )
 
-    <?php
-
-    use Otter\ORM\Schema;
-    use Otter\ORM\ColumnType;
-    use Otter\ORM\ColumnDefaultValue;
-    use Otter\ORM\ModelAssociation;
-
-    class UserSchema extends Schema {
-        public static $modelName = 'User'; // Identification name
-        public static $tableName = 'users'; // name in database
-        public static $columns = [ // columns in database
-            'id' => [
-                'type' => ColumnsType::INT,
-                'primaryKey' => true,
-                'required' => true
-            ],
-            'id_role' => [
-                'type' => ColumnsType::INT,
-                'required' => true,
-                'allowNull' => false,
-                'defaultValue' => 1,
-            ],
-            'name' => [
-                'type' => ColumnType::STRING,
-                'length' => 40,
-                'required' => true,
-            ],
-            'email' => [
-                'type' => ColumnType::STRING,
-                'allowNull' => false,
-                'required' => false,
-                'defaultValue' => 'email@email.com',
-            ],
-            'country' => [
-                'type' => ColumnType::STRING,
-                'allowNull' => true,
-                'required' => true,
-            ]
-        ];
-        public static $associations = [];
-    }
-
-    return UserSchema::class; // Very important!!
-
-Not forget the return class, it is very important for internal operation
+    <?xml version="1.0" encoding="UTF-8"?>
+    <schema table="users">
+        <columns>
+            <column name="id" type="integer">
+                <primary-key>TRUE</primary-key>
+                <allow-null>FALSE</allow-null>
+                <required>FALSE</required>
+            </column>
+            <column name="id_role" type="integer">
+                <default-value>1</default-value>
+            </column>
+            <column name="name" type="string">
+                <length>100</length>
+            </column>
+            <column name="email" type="string">
+                <length>100</length>
+                <default-value>email@email.com</default-value>
+            </column>
+            <column name="country" type="string">
+                <allow-null>TRUE</allow-null>
+                <required>TRUE</required>
+            </column>
+            <column name="createdAt" type="datetime">
+                <allow-null>FALSE</allow-null>
+                <required>TRUE</required>
+                <default-value otter="otter.date.now"></default-value>
+            </column>
+            <column name="updatedAt" type="datetime">
+                <allow-null>TRUE</allow-null>
+                <required>FALSE</required>
+            </column>
+        </columns>
+        <associations/>
+    </schema>
 
 ### Auto Generate Schemas (Terminal)
 
@@ -137,13 +126,15 @@ Simple examples
 | find | Return the first result | onlyColumns [array] | find([ 'id', 'name', 'role.name' ]) |
 | findAll | Return all results | onlyColumns [array] | find([ 'id', 'name', 'role.name' ]) |
 
+- The `find(...)` method is an alias for `findAll(...)->limit(1)`
+
 #### Filter Results
 
 This find all users that the name is **George**:
 
     $User->findAll()
          ->where([
-             'User.name' => 'George'
+             'name' => 'George'
          ])
          ->end();
 
@@ -151,9 +142,9 @@ This find first users that the name is **George** or **Philippe**:
 
     $User->find()
          ->where([
-             'User.name' => 'George',
+             'name' => 'George',
              'OR',
-             'User.name' => 'Philippe',
+             'name' => 'Philippe',
          ])
          ->end();
 
@@ -161,9 +152,9 @@ This find first users that the country is **EEUU**, name starts with **Ge** and 
 
     $User->find()
          ->where([
-             'User.country' => 'EEUU',
-             'User.name' => ['LIKE', 'GE%'],
-             'User.id' => ['>', 10]
+             'country' => 'EEUU',
+             'name' => ['LIKE', 'GE%'],
+             'id' => ['>', 10]
          ])
          ->end();
 
@@ -188,8 +179,8 @@ Order by:
             'name'
         ])
         ->orderBy([
-            'User.id',              // Ascendent
-            'User.name' => 'DESC'   // Descendent
+            'id',              // Ascendent
+            'name' => 'DESC'   // Descendent
         ])
         ->end();
 
@@ -199,7 +190,7 @@ Group by:
             'country'
         ])
         ->groupBy([
-            'User.country'
+            'country'
         ])
         ->end();
 
@@ -216,8 +207,8 @@ Count data:
 Relations:
 
     $User->find()
-         ->join([
-             'User.role'
+         ->include([
+             'role'
          ])
          ->end();
 
@@ -371,6 +362,6 @@ schemas/BookSchema.php
 
 If you want, you can generate a query an execute.
 
-    Otter\ORM\SimpleORM::db("SELECT * FROM persons");
+    Otter\ORM\Otter::db("SELECT * FROM persons");
 
 - Returns `array|null`

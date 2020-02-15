@@ -64,7 +64,9 @@ if(isset($arguments['generate:schema:db'])) {
     }
 
     $rowPK = $stmt->fetch(\PDO::FETCH_ASSOC);
-    $PrimaryKey = ($rowPK !== null && count($rowPK) > 0) ? $rowPK['Column_Name'] : null;
+    $PrimaryKey = ($rowPK) ? $rowPK['Column_Name'] : '';
+    if(! $rowPK)
+        echo "!Primary Key: Not Detected\n";
 
     $generate_schema = new \Otter\ORM\Maker\Schema\SchemaMaker($modelName);
     $xml = $generate_schema->sql_to_schema($rows, $PrimaryKey);

@@ -28,18 +28,8 @@ class QueryCount extends QuerySelect {
      * @param array $onlyColumns
      * @return void
      */
-    public function find(array $onlyColumns = []) {
-        throw new QueryException("Method not supported", 1);
-    }
-
-    /**
-     * Unsupported method
-     *
-     * @param array $onlyColumns
-     * @return void
-     */
-    public function findAll(array $onlyColumns = []) {
-        throw new QueryException("Method not supported", 1);
+    public function select(array $onlyColumns = []) {
+        throw new QueryException("Unsupported Method", 1);
     }
 
     /**
@@ -49,7 +39,18 @@ class QueryCount extends QuerySelect {
      * @return void
      */
     public function limit(int $limit): QuerySelect {
-        throw new QueryException("Method not supported", 1);
+        throw new QueryException("Unsupported Method", 1);
+    }
+
+    /**
+     * Method not supported
+     *
+     * @param integer $pag
+     * @param integer $maxPerPag
+     * @return QuerySelect
+     */
+    public function pagination(int $pag, int $maxPerPag): QuerySelect {
+        throw new QueryException("Unsupported Method", 1);
     }
 
     public function include(array $includes): QuerySelect {
