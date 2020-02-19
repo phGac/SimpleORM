@@ -134,17 +134,27 @@ This find all users that the name is **George**:
 
     $User->findAll()
          ->where([
-             'name' => 'George'
+             'name' => 'George',
+         ])
+         ->end();
+
+This find all users that the name is **George** or Id **1**:
+
+    $User->findAll()
+         ->where([
+             'name' => 'George',
+             'or',
+             'Id' => 1
          ])
          ->end();
 
 This find first users that the name is **George** or **Philippe**:
 
+    use Otter\ORM\OtterValue;
+
     $User->find()
          ->where([
-             'name' => 'George',
-             'OR',
-             'name' => 'Philippe',
+            OtterValue::OR('name', 'George', 'Philippe'),
          ])
          ->end();
 
@@ -161,7 +171,7 @@ This find first users that the country is **EEUU**, name starts with **Ge** and 
 Get top 10 results:
 
     $User->findAll()
-         ->limit(10)
+         ->top(10)
          ->end();
 
 Get only id and name:
@@ -229,16 +239,16 @@ Relations:
 schemas/UserSchema.php
 
     ...
-    public static $columns = [
+    <columns>
         ...
-        'email' => [
-            'type' => ColumnType::STRING,
-            'allowNull' => false,
-            'required' => false,
-            'defaultValue' => 'email@email.com', // will be used
-        ],
+        <column name="email" type="string">
+            <length>30</length>
+            <allow-null>FALSE</allow-null>
+            <required>FALSE</required>
+            <default-value>email@email.com</default-value> // will be used
+        </column>
         ...
-    ];
+    </columns>
     ...
 
 ### UPDATE
@@ -278,84 +288,91 @@ We uses 4 types of relations:
 
 This is used for a relation like 1:1 or 1:1. For example, a user can have one or more roles (depending on the design). In both cases, we use BelongsTo in the user scheme.
 
-schemas/UserSchema.php
+schemas/UserSchema.xml
 
     ...
-    public static $associations = [
-        'role' => [                     // <= association nickname
-            'type' => ModelAssociation::BelongsTo,
-            'schema' => RoleSchema::class, // Internal use. Very important
-            'foreignKey' => 'id_role',  // Foreign Key (UserSchema)
-            'key' => 'id',               // Key (RoleSchema)
-            'strict' => true,           // optional
-        ],
+    <associations>
         ...
-    ];
+        <association name="role" type="BelongsTo">
+            <model>Role</model>
+            <foreign-key>id_role</foreign-key>
+            <key>id</key>
+            <strict>TRUE</strict>           // optional
+        </association>
+        ...
+    </associations>
     ...
 
+- The `name` attribute in association tag is the name for association (we used the name association for link the association)
 - The `strict` option force to use Inner Join in select. By default we use _LEFT JOIN_
 
 ### Belongs To Many
 
 This is used for a relation like N:1.
 
-schemas/UserSchema.php
+schemas/UserSchema.xml
 
     ...
-    public static $associations = [
-        'role' => [                     // <= association nickname
-            'type' => ModelAssociation::BelongsToMany,
-            'schema' => RoleSchema::class, // Internal use. Very important
-            'foreignKey' => 'id_role',  // Foreign Key (UserSchema)
-            'key' => 'id',               // Key (RoleSchema)
-            'strict' => true,           // optional
-        ],
+    <associations>
         ...
-    ];
+        <association name="roles" type="BelongsToMany">
+            <foreign-key>id_role</foreign-key>
+            <through>UserRole</through>
+            <through-bridge>role</through-bridge>
+            <through-key>id_user</through-key>
+        </association>
+        ...
+    </associations>
     ...
 
+- The `name` attribute in association tag is the name for association (we used the name association for link the association)
 - The `strict` option force to use Inner Join in select. By default we use _LEFT JOIN_
+- The `through` tags indicate the intermediary model and the necessary options:
+  - `through-bridge` indicate the association name used (eg. in UserRole)
+  - `through-key` indicate the column to another model (eg. associate User to UserRole)
 
 ### Has One
 
 This is used for a relation like 1:1. For example, a book have one author (usually).
 
-schemas/BookSchema.php
+schemas/BookSchema.xml
 
     ...
-    public static $associations = [
-        'author' => [                     // <= association nickname
-            'type' => ModelAssociation::HasOne,
-            'schema' => AuthorSchema::class, // Internal use. Very important
-            'foreignKey' => 'id_author',  // Foreign Key (UserSchema)
-            'key' => 'id',               // Key (RoleSchema)
-            'strict' => true,           // optional
-        ],
+    <associations>
         ...
-    ];
+        <association name="role" type="HasOne">
+            <model>Author</model>
+            <foreign-key>id_author</foreign-key>
+            <key>id</key>
+            <strict>TRUE</strict>           // optional
+        </association>
+        ...
+    </associations>
     ...
 
+- The `name` attribute in association tag is the name for association (we used the name association for link the association)
 - The `strict` option force to use Inner Join in select. By default we use _LEFT JOIN_
 
 ### Has Many
 
 This is used for a relation like 1:N. For example, a book have one author (usually).
 
-schemas/BookSchema.php
+schemas/BookSchema.xml
 
     ...
-    public static $associations = [
-        'author' => [                     // <= association nickname
-            'type' => ModelAssociation::HasOne,
-            'schema' => AuthorSchema::class, // Internal use. Very important
-            'foreignKey' => 'id_author',  // Foreign Key (BookSchema)
-            'key' => 'id',               // Key (AuthorSchema)
-            'strict' => true,           // optional
-        ],
+    <associations>
         ...
-    ];
+        <association name="role" type="HasMany">
+            <model>Author</model>
+            <foreign-key>id_author</foreign-key>
+            <key>id</key>
+            <strict>TRUE</strict>           // optional
+        </association>
+        ...
+    </associations>
     ...
 
+- The `name` attribute in association tag is the name for association (we used the name association for link the association)
 - The `strict` option force to use Inner Join in select. By default we use _LEFT JOIN_
 
 ## Libre Query

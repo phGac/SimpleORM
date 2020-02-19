@@ -91,14 +91,6 @@ abstract class OtterValue {
         }
         return [ $column => $vals];
     }
-
-    public static function AND(string $column, ...$values) {
-        $vals = ['AND' => []];
-        foreach ($values as $value) {
-            $vals['AND'][] = $value;
-        }
-        return [ $column => $vals];
-    }
 }
 
 abstract class OtterDefaultValue {
