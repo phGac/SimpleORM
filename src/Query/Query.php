@@ -1,64 +1,55 @@
 <?php
 
-namespace Otter\ORM\Query;
-
-use Otter\ORM\Schema\Schema;
-
-abstract class Query {
-
-    protected $query;
-    protected $type;
-    protected $values;
-    protected $schema;
-
-    public function __construct(Schema $schema) {
-        $this->schema = $schema;
-        $this->query = [];
-        $this->type = null;
-        $this->values = [];
+namespace Otter\ORM\Query {
+    abstract class QueryType {
+        public const SELECT = "SELECT";
+        public const CREATE = "CREATE";
+        public const UPDATE = "UPDATE";
+        public const DELETE = "DELETE";
+    
+        public const COUNT = "SELECT-COUNT";
     }
+    class QuerySelect {
+        public $select = [];
+        public $onlySelect = null;
+        public $top = null;
+        public $from = null;
+        public $join = [];
+        public $where = [];
+        public $groupby = [];
+        public $having = [];
+        public $orderby = [];
+        public $pagination = null;
 
-    public function end() {}
-
-    protected function valueToSQL(string $columnType, $originalValue) {
-        $value = $originalValue;
-        switch($columnType) {
-            case "boolean":
-            $value = ($originalValue === true) ? 1 : 0;
-            break;
-            case null:
-            $value = "NULL";
-            break;
+        public function __construct(string $fromTable, string $fromAlias, array $onlySelect = null) {
+            $this->from = "[$fromTable] AS [$fromAlias]";
+            $this->onlySelect = $onlySelect;
         }
-        return $value;
     }
+    class QueryCreate {
+        public $into = null;
+        public $columnsToSet = [];
+        public $valuesToInsert = [];
 
-}
+        public function __construct(string $tableName) {
+            $this->into = $tableName;
+        }
+    }
+    class QueryUpdate {
+        public $update = null;
+        public $columnsToSet = [];
+        public $where = [];
 
-abstract class QueryType {
-    public const SELECT = "SELECT";
-    public const CREATE = "CREATE";
-    public const UPDATE = "UPDATE";
-    public const DELETE = "DELETE";
+        public function __construct(string $tableName) {
+            $this->update = $tableName;
+        }
+    }
+    class QueryDelete {
+        public $delete = null;
+        public $where = [];
 
-    public const COUNT = "SELECT-COUNT";
-}
-
-class QueryObject {
-
-    // SELECT
-    public $top = null;
-    public $count = false;
-    public $columnsJoins = null;
-    public $joins = null;
-    public $where = null;
-    public $groupby = null;
-    public $having = null;
-    public $orderby = null;
-    public $pagination = null;
-
-    // CREATE - UPDATE - DELETE
-    public $columns;
-    public $values;
-    public $withoutWhere;
+        public function __construct(string $tableName) {
+            $this->delete = $tableName;
+        }
+    }
 }

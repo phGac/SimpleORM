@@ -2,15 +2,14 @@
 
 namespace Otter\ORM\Maker\Query;
 
-use Otter\ORM\Schema\Schema;
-use Otter\ORM\Query\QueryObject;
+use Otter\ORM\Query\QueryCreate;
 
 abstract class QueryMakerCreate {
 
-    public static function make(Schema $schema, QueryObject $queryObject) {
-        $table = $schema->table;
-        $columns = $queryObject->columns;
-        $values = $queryObject->values;
+    public static function make(QueryCreate $query) {
+        $table = $query->into;
+        $columns = \implode(', ', $query->columnsToSet);
+        $values = \implode(', ', $query->valuesToInsert);
 
         $query = "INSERT INTO [$table] ($columns) VALUES ($values);";
 

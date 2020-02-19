@@ -59,6 +59,10 @@ class Otter {
         return ( self::get($modelName) !== null ) ? self::$schemas[$modelName] : null;
     }
 
+    public static function db(string $sqlQuery, array $params = []): ?array {
+        return (QueryRunner::execute($sqlQuery, $params));
+    }
+
 }
 
 abstract class OtterValue {
@@ -73,15 +77,38 @@ abstract class OtterValue {
     }
 
     public static function BOOLEAN($value) {
-        if(in_array($value, ['FALSE', 'F', 'false', 'f', '0'])) {
+        if(in_array($value, ['FALSE', 'F', 'false', 'f', '0', 0, false])) {
             return false;
         } else {
             return true;
         }
+    }
+
+    public static function OR(string $column, ...$values) {
+        $vals = ['OR' => []];
+        foreach ($values as $value) {
+            $vals['OR'][] = $value;
+        }
+        return [ $column => $vals];
+    }
+
+    public static function AND(string $column, ...$values) {
+        $vals = ['AND' => []];
+        foreach ($values as $value) {
+            $vals['AND'][] = $value;
+        }
+        return [ $column => $vals];
     }
 }
 
 abstract class OtterDefaultValue {
     public const OTTER_DATE_NOW = "otter.date.now";
     public const OTTER_DATE_UTC_NOW = "otter.date-utc.now";
+}
+
+final class OtterResult {
+    public $affectedRows = 0;
+    public $objectsCount = 0;
+    public $data = null;
+    public $error = null;
 }

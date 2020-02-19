@@ -3,11 +3,11 @@
 namespace Otter\ORM;
 
 use Otter\ORM\Schema\Schema;
-use Otter\ORM\Query\QuerySelect;
-use Otter\ORM\Query\QueryCreate;
-use Otter\ORM\Query\QueryUpdate;
-use Otter\ORM\Query\QueryDelete;
-use Otter\ORM\Query\QueryCount;
+use Otter\ORM\Query\Select;
+use Otter\ORM\Query\Count;
+use Otter\ORM\Query\Create;
+use Otter\ORM\Query\Update;
+use Otter\ORM\Query\Delete;
 
 class Model {
     protected $schema;
@@ -16,76 +16,46 @@ class Model {
         $this->schema = $schema;
     }
 
-    public function find(array $onlyColumns = []): QuerySelect {
-        $querySelect = new QuerySelect($this->schema);
-        $querySelect->select($onlyColumns)
-                    ->limit(1);
-        return $querySelect;
+    public function find(array $onlyColumns = []): Select {
+        $select = new Select($this->schema, $onlyColumns);
+        $select->top(1);
+        return $select;
     }
 
-    public function findAll(array $onlyColumns = []): QuerySelect {
-        $querySelect = new QuerySelect($this->schema);
-        $querySelect->select($onlyColumns);
-        return $querySelect;
+    public function findAll(array $onlyColumns = []): Select {
+        return new Select($this->schema, $onlyColumns);
     }
 
-    public function count(): QueryCount {
-        return new QueryCount($this->schema);
+    public function count(): Count {
+        return new Count($this->schema);
     }
 
-    public function create(array $columns): bool {
-        $queryCreate = new QueryCreate($this->schema);
-        return $queryCreate->create($columns);
+    public function create(array $columns, bool $onlyReturnResult = true) {
+        $create = new Create($this->schema, $columns);
+        return $create->end($onlyReturnResult);
     }
 
-    public function update(array $columns, array $where): bool {
-        $queryUpdate = new QueryUpdate($this->schema);
-        return $queryUpdate->update($columns)->where($where)->end();
+    public function update(array $columns, array $where, bool $onlyReturnResult = true) {
+        $update = new Update($this->schema, $columns);
+        $update->where($where);
+        return $update->end($onlyReturnResult);
     }
 
-    public function updateAll(array $columns): bool {
-        $queryUpdate = new QueryUpdate($this->schema);
-        return $queryUpdate->update($columns)->end();
+    public function updateAll(array $columns, bool $onlyReturnResult = true) {
+        $update = new Update($this->schema, $columns);
+        return $update->end($onlyReturnResult);
     }
 
-    public function delete(array $where): bool {
-        $queryDelete = new QueryDelete($this->schema);
-        return $queryDelete->where($where)->end();
+    public function delete(array $where, bool $onlyReturnResult = true) {
+        $delete = new Delete($this->schema);
+        $delete->where($where);
+        return $delete->end($onlyReturnResult);
     }
 
-    public function deleteAll(): bool {
-        $queryDelete = new QueryDelete($this->schema);
-        return $queryDelete->end();
+    public function deleteAll(bool $onlyReturnResult = true) {
+        $delete = new Delete($this->schema);
+        return $delete->end($onlyReturnResult);
     }
-
-    /*
-    public function build(array $data = []) {
-        $object = new SimpleModel($this->schema);
-        foreach ($this->schema->columns as $key => $value) {
-            $object->$key = (isset($data[$key])) ? $data[$key] : null;
-        }
-        return $object;
-    }
-
-    public function make($object) {
-        $vars = \get_object_vars($object);
-        $queryCreate = new QueryCreate();
-    }
-    */
 }
 
 class PlainModel {}
-
-class SimpleModel {
-    private $schema;
-
-    public function __construct($schema) {
-        $this->schema = $schema;
-    }
-
-    public function __set(string $name, $value) {
-        if(array_key_exists($name, $this->schema->columns)) {
-            $this->$name = $value;
-        }
-    }
-}

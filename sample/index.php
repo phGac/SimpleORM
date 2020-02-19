@@ -3,6 +3,7 @@
 require_once __DIR__.'/../autoload.php';
 
 use \Otter\ORM\Otter;
+use \Otter\ORM\OtterValue;
 
 $orm = new Otter('localhost', 'store', 'sa', 'bimmer');
 $orm->schemas(__DIR__.'/schemas');
@@ -26,40 +27,42 @@ $Product = Otter::get('Product');
 $Order = Otter::get('Order');
 $Customer = Otter::get('Customer');
 
+/*
 $customers = $Customer->findAll()
-                    ->include(['orders', 'orders.products'])
-                    //->limit(5)
-                    ->pagination(1, 10)
+                    ->join(['orders']) //, 'orders.products'])
+                    ->top(5)
+                    //->pagination(1, 10)
                     ->end();
 echo "<pre>";
 print_r($customers);
 echo "</pre>";
+*/
 /*
-$count = $Order->count()
-               ->where([
-                   'TotalAmount' => ['>', 2000]
-               ])
-               ->end();
+$count = $Customer->count()
+                ->join(['orders'])
+                ->end();
 
 echo "count: $count";
 */
-/*
-$result = $Order->delete([ 'Id' => 24 ]);
+
+$result = $Order->delete([ 
+                    OtterValue::OR('Id', 28, 29, 30),
+                ]);
 
 if($result) {
-echo "deleted ok.";
+    echo "deleted ok.";
 } else {
-echo ":c";
+    echo ":c";
 }
-*/
+
 /*
 $result = $Order->update([
                     'OrderNumber' => 160873,
                     'CustomerId' => 4,
                     'TotalAmount' => 1050,
                 ],[
-                    'Id' => 24
-                ]);
+                    'Id' => 25
+                ], false);
 if($result) {
     echo "Order updated.";
 } else {
@@ -80,8 +83,8 @@ if($result) {
 */
 /*
 $orders = $Order->findAll()
-                    ->include([ 'products' ])
-                    ->limit(10)
+                    ->join([ 'products' ])
+                    ->top(10)
                     ->end();
 
 echo "<pre>";
