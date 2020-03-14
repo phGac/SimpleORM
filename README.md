@@ -126,7 +126,7 @@ Simple examples
 | find | Return the first result | onlyColumns [array] | find([ 'id', 'name', 'role.name' ]) |
 | findAll | Return all results | onlyColumns [array] | find([ 'id', 'name', 'role.name' ]) |
 
-- The `find(...)` method is an alias for `findAll(...)->limit(1)`
+- The `find(...)` method is an alias for `findAll(...)->top(1)`
 
 #### Filter Results
 

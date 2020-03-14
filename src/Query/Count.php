@@ -18,7 +18,7 @@ class Count extends Select {
 
     public function end(bool $onlyReturnData = true): ?int {
         $sql = \Otter\ORM\Maker\Query\QueryMakerCount::make($this->schema, $this->query);
-        $result = QueryRunner::execute($sql, $this->valuesToPrepare, true, false);
+        $result = QueryRunner::execute($sql, $this->valuesToPrepare, true, false, false);
         return ($result !== null) ? $result->data->TOTAL : null;
     }
 

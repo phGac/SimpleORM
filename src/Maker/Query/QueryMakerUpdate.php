@@ -11,7 +11,7 @@ abstract class QueryMakerUpdate {
     public static function make(QueryUpdate $query) {
         $table = $query->update;
         $columnsToSet = implode(', ',$query->columnsToSet);
-        $where = implode(' ', $query->where);
+        $where = $query->where;
 
         if(count($query->where) > 0) {
             $query = "UPDATE [$table] SET $columnsToSet WHERE $where;";

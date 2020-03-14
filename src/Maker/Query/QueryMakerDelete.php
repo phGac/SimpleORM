@@ -10,7 +10,7 @@ abstract class QueryMakerDelete {
 
     public static function make(QueryDelete $query) {
         $table = $query->delete;
-        $where = \implode(' ', $query->where);
+        $where = $query->where;
 
         if(count($query->where) > 0) {
             $query = "DELETE [$table] WHERE $where;";

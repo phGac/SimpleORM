@@ -49,76 +49,36 @@ class Update {
         $this->valuesToPrepare = $valuesToPrepare;
     }
 
-    public function where(array $where): Delete {
-        $whereArray = [];
-        foreach ($where as $objectNameAndColumnName => $whereValue) {
-            if(\gettype($objectNameAndColumnName) !== 'integer') {
-                [$objectName, $columnName] = $this->getObjectNameAndColumnName($objectNameAndColumnName);
-                
-                if(\gettype($whereValue) === 'array') {
-                    $simbol = \strtoupper($whereValue[0]);
-                    $whereValue = $whereValue[1];
-                    $whereArray[] = "[$objectName].[$columnName] $simbol :$objectName$columnName";
-                    $whereArray[] = 'AND';
-                } else if($whereValue !== null) {
-                    $whereArray[] = "[$objectName].[$columnName] = :$objectName$columnName";
-                    $whereArray[] = 'AND';
-                }
-            } else {
-                switch(\gettype($whereValue)) {
-                    case 'string':
-                        switch(\strtoupper($whereValue)) {
-                            case 'OR': 
-                                $position = (count($whereArray)-1);
-                                $whereArray[$position] = 'OR';
-                            break;
-                        }
-                        continue;
-                    break;
-                    case 'array':
-                        [$objectName, $columnName] = $this->getObjectNameAndColumnName($whereValue);
-                        $values = (array_key_exists($columnName, $whereValue)) ? $whereValue[$columnName] : $whereValue["$objectName.$columnName"];
-                        $i = 65; // ASCII CODE for 'A'
-                        foreach ($values as $key => $val) {
-                            foreach ($val as $v) {
-                                $ascii = chr($i);
-                                $whereArray[] = "[$objectName].[$columnName] = :$objectName$columnName$ascii";
-                                $whereArray[] = $key; // OR, AND
-                                $i++;
-
-                                if($objectName !== $this->schema->name) {
-                                    if(array_key_exists($objectName, $this->schema->associations)) {
-                                        $type = $this->associationsSchemas[$objectName]->columns[$columnName]->type;
-                                        $v = $this->valueToSQL($type, $v);
-                                    }
-                                } else {
-                                    $type = $this->schema->columns[$columnName]->type;
-                                    $v = $this->valueToSQL($type, $v);
-                                }
-                    
-                                $this->valuesToPrepare[":$objectName$columnName$ascii"] = $v;
-                            }
-                            array_pop($whereArray);
-                        }
-                    continue 2;
-                }
-                
-            }
-
-            if($objectName !== $this->schema->name) {
-                if(array_key_exists($objectName, $this->schema->associations)) {
-                    $type = $this->associationsSchemas[$objectName]->columns[$columnName]->type;
-                    $whereValue = $this->valueToSQL($type, $whereValue);
-                }
-            } else {
-                $type = $this->schema->columns[$columnName]->type;
-                $whereValue = $this->valueToSQL($type, $whereValue);
-            }
-
-            $this->valuesToPrepare[":$objectName$columnName"] = $whereValue;
-            array_pop($whereArray); // remove last 'OR' or last 'AND'.
+    public function where(array $where): Select {
+        if(! isset($where['as'])) {
+            // error
         }
-        $this->query->where = $whereArray;
+
+        switch($where['as']) {
+            case 'CONDITION':
+                \extract($condition);
+                if(! $special) {
+                    [$objectName, $columnName] = \Otter\ORM\Query\getObjectNameAndColumnName($column);
+                    if($objectName === '::object::') {
+                        $objectName = $this->schema->name;
+                    }
+
+                    $this->query->where = "($column $comparation $value)";
+                }
+                else {
+                    $string = \str_replace('::object::', $this->schema->name, $string);
+                    $this->query->where = "($string)";
+                }
+            break;
+            
+            case 'UNION-CONDITIONS':
+                $string = \str_replace('::object::', $this->schema->name, $where['conditions']);
+                $this->query->where = $string;
+            break;
+
+            default:
+                //error
+        }
 
         return $this;
     }
@@ -137,22 +97,4 @@ class Update {
         return $value;
     }
 
-    protected function getObjectNameAndColumnName($objectNameAndColumnName) {
-        if(\is_array($objectNameAndColumnName)) {
-            $objectNameAndColumnName = (array_keys($objectNameAndColumnName)[0]);
-        }
-
-        $objectNameAndColumnName = explode('.', $objectNameAndColumnName);
-        if(\count($objectNameAndColumnName) > 1) {
-            $objectName = $objectNameAndColumnName[0];
-            $columnName = $objectNameAndColumnName[1];
-        } else {
-            $objectName = $this->schema->name;
-            $columnName = $objectNameAndColumnName[0];
-        }
-        return [
-            $objectName,
-            $columnName
-        ];
-    }
 }

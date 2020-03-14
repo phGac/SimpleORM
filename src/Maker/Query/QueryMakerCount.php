@@ -13,7 +13,7 @@ abstract class QueryMakerCount extends QueryMakerSelect {
         if(count($query->join) > 0)
             $sql .= ' '.implode(' ', $query->join);
         if(count($query->where) > 0)
-            $sql .= ' WHERE '.implode(' ', $query->where);
+            $sql .= " WHERE $query->where";
         if(count($query->groupby) > 0)
             $sql .= ' GROUP BY '.implode(', ', $query->groupby);
         if(count($query->having) > 0)

@@ -30,7 +30,7 @@ class Schema {
         $columns = [];
         foreach ($schema->columns->column as $key => $column) {
             $columns[$column->{'@attributes'}->name] = new Column($column);
-            if($columns[$column->{'@attributes'}->name]->primaryKey) {
+            if($columns[$column->{'@attributes'}->name]->{'primaryKey'}) {
                 $this->pk = $column->{'@attributes'}->name;
             }
         }

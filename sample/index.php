@@ -4,8 +4,9 @@ require_once __DIR__.'/../autoload.php';
 
 use \Otter\ORM\Otter;
 use \Otter\ORM\OtterValue;
+use \Otter\ORM\OtterWhere;
 
-$orm = new Otter('localhost', 'store', 'sa', 'bimmer');
+$orm = new Otter('localhost', 'store', 'sa', 'passWORD.123');
 $orm->schemas(__DIR__.'/schemas');
 
 /*
@@ -27,124 +28,28 @@ $Product = Otter::get('Product');
 $Order = Otter::get('Order');
 $Customer = Otter::get('Customer');
 
-/*
 $customers = $Customer->findAll()
-                    ->join(['orders']) //, 'orders.products'])
-                    ->top(5)
-                    //->pagination(1, 10)
+                    ->where(
+                        OtterWhere::AND(
+                            OtterWhere::condition('Id', 1),
+                            OtterWhere::OR(
+                                OtterWhere::condition('FirstName', 'Maria', 'LIKE'),
+                                OtterWhere::condition('FirstName', 'Philippe', 'LIKE')
+                            ),
+                            OtterWhere::BETWEEN('Id', 1, 5),
+                            OtterWhere::IN('Id', 1, 2, 3, 4)
+                        )
+                    )
                     ->end();
+
 echo "<pre>";
 print_r($customers);
 echo "</pre>";
-*/
-/*
-$count = $Customer->count()
-                ->join(['orders'])
-                ->end();
 
-echo "count: $count";
-*/
-
-$result = $Order->delete([ 
-                    OtterValue::OR('Id', 28, 29, 30),
-                ]);
-
-if($result) {
-    echo "deleted ok.";
-} else {
-    echo ":c";
-}
-
-/*
-$result = $Order->update([
-                    'OrderNumber' => 160873,
-                    'CustomerId' => 4,
-                    'TotalAmount' => 1050,
-                ],[
-                    'Id' => 25
-                ], false);
-if($result) {
-    echo "Order updated.";
-} else {
-    echo ":c";
-}
-*/
-/*
-$result = $Order->create([
-                    'OrderNumber' => 115,
-                    'CustomerId' => 2,
-                    'TotalAmount' => 2200,
-                ]);
-if($result) {
-    echo "Order created.";
-} else {
-    echo ":c";
-}
-*/
-/*
-$orders = $Order->findAll()
-                    ->join([ 'products' ])
-                    ->top(10)
-                    ->end();
-
-echo "<pre>";
-print_r($orders);
-echo "</pre>";
-*/
-/*
-$products = $Product->findAll()
-                    ->include([ 'orders' ])
-                    ->limit(10)
-                    ->end();
-
-echo "<pre>";
-print_r($products);
-echo "</pre>";
-*/
-/*
-$ordersitems = $OrderItem->findAll()
-                    ->include([ 'order', 'product' ])
-                    //->limit(10)
-                    ->end();
-
-echo "<pre>";
-print_r($ordersitems);
-echo "</pre>";
-*/
-/*
-$products = $Product->findAll()
-                    ->include([ 'supplier' ])
-                    ->limit(10)
-                    ->end();
-
-echo "<pre>";
-print_r($products);
-echo "</pre>";
-*/
-/*
-$orders = $Order->findAll()
-                ->where([
-                    'OrderDate' => [ '>', '2010-07-01' ], // YYYY-MM-DD or YYYY
-                ])
-                ->end();
-
-echo "<pre>";
-print_r($orders);
-echo "</pre>";
-*/
-/*
-$suppliers = $Supplier->findAll()
-                    ->include([ 'products' ])
-                    //->where([ 'CompanyName' => ['LIKE', "%AC%"], 'products.Id' => 1 ])
-                    ->limit(10)
-                    ->end();
-
-echo "<pre>";
-print_r($suppliers);
-*/
 
 echo "<br>Last Query:";
 echo "<p>".Otter::$lastQuery."</p>";
 echo "<br>Last Error:<pre>";
 print_r(Otter::$lastQueryErrorInfo);
 echo "</pre>";
+

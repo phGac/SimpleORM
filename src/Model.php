@@ -16,13 +16,13 @@ class Model {
         $this->schema = $schema;
     }
 
-    public function find(array $onlyColumns = []): Select {
+    public function find($onlyColumns = []): Select {
         $select = new Select($this->schema, $onlyColumns);
         $select->top(1);
         return $select;
     }
 
-    public function findAll(array $onlyColumns = []): Select {
+    public function findAll($onlyColumns = []): Select {
         return new Select($this->schema, $onlyColumns);
     }
 

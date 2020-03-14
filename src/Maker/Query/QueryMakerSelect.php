@@ -11,14 +11,28 @@ abstract class QueryMakerSelect {
         $sql = 'SELECT';
         if($query->top !== null)
             $sql .= ' TOP '.$query->top;
-        $sql .= self::columns($schema, $query->onlySelect);
+        $columns = self::columns($schema, $query->onlySelect);
+        if($columns !== '')
+            $sql .= $columns;
         if(count($query->join) > 0 && count($query->onlySelect) === 0)
             $sql .= ', '.implode(', ', $query->select);
+        if($query->functions !== null) {
+            $functions = [];
+            foreach (array_keys($query->functions) as $function) {
+                $functions[] = implode(', ', $query->functions[$function]);
+            }
+            if($query->onlySelect !== null) {
+                $sql .= ', ';
+            } else {
+                $sql .= ' ';
+            }
+            $sql .= implode(', ', $functions);
+        }
         $sql .= ' FROM '.$query->from;
         if(count($query->join) > 0)
             $sql .= ' '.implode(' ', $query->join);
-        if(count($query->where) > 0)
-            $sql .= ' WHERE '.implode(' ', $query->where);
+        if($query->where !== null)
+            $sql .= " WHERE $query->where";
         if(count($query->groupby) > 0)
             $sql .= ' GROUP BY '.implode(', ', $query->groupby);
         if(count($query->having) > 0)
@@ -31,7 +45,11 @@ abstract class QueryMakerSelect {
         return $sql;
     }
 
-    private static function columns(Schema $schema, array $onlySelect) {
+    private static function columns(Schema $schema, $onlySelect) {
+        if($onlySelect === null) {
+            return '';
+        }
+
         $modelName = $schema->name;
         $tableName = $schema->table;
         $tableColumns = \array_keys($schema->columns);

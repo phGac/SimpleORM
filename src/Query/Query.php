@@ -10,12 +10,13 @@ namespace Otter\ORM\Query {
         public const COUNT = "SELECT-COUNT";
     }
     class QuerySelect {
+        public $top = null;
         public $select = [];
         public $onlySelect = null;
-        public $top = null;
+        public $functions = null;
         public $from = null;
         public $join = [];
-        public $where = [];
+        public $where = null;
         public $groupby = [];
         public $having = [];
         public $orderby = [];
@@ -38,7 +39,7 @@ namespace Otter\ORM\Query {
     class QueryUpdate {
         public $update = null;
         public $columnsToSet = [];
-        public $where = [];
+        public $where = null;
 
         public function __construct(string $tableName) {
             $this->update = $tableName;
@@ -46,10 +47,29 @@ namespace Otter\ORM\Query {
     }
     class QueryDelete {
         public $delete = null;
-        public $where = [];
+        public $where = null;
 
         public function __construct(string $tableName) {
             $this->delete = $tableName;
         }
+    }
+
+    function getObjectNameAndColumnName($objectNameAndColumnName) {
+        if(\is_array($objectNameAndColumnName)) {
+            $objectNameAndColumnName = (array_keys($objectNameAndColumnName)[0]);
+        }
+
+        $objectNameAndColumnName = explode('.', $objectNameAndColumnName);
+        if(\count($objectNameAndColumnName) > 1) {
+            $objectName = $objectNameAndColumnName[0];
+            $columnName = $objectNameAndColumnName[1];
+        } else {
+            $objectName = '::object::';
+            $columnName = $objectNameAndColumnName[0];
+        }
+        return [
+            $objectName,
+            $columnName
+        ];
     }
 }

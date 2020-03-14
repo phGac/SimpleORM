@@ -8,6 +8,7 @@ use Otter\ORM\QueryRunner;
 use Otter\ORM\Exception\QueryException;
 use Otter\ORM\Schema\Schema;
 use Otter\ORM\Schema\SchemaAssociation;
+use Otter\ORM\Query;
 use Otter\ORM\Query\QuerySelect;
 
 class Select {
@@ -16,7 +17,7 @@ class Select {
     protected $query;
     protected $valuesToPrepare;
 
-    public function __construct(Schema $schema, array $onlyColumns = []) {
+    public function __construct(Schema $schema, $onlyColumns = []) {
         $this->schema = $schema;
         $this->query = new QuerySelect($schema->table, $schema->name, $onlyColumns);
         $this->valuesToPrepare = [];
@@ -37,76 +38,105 @@ class Select {
         return $this;
     }
 
-    public function where(array $where): Delete {
-        $whereArray = [];
-        foreach ($where as $objectNameAndColumnName => $whereValue) {
-            if(\gettype($objectNameAndColumnName) !== 'integer') {
-                [$objectName, $columnName] = $this->getObjectNameAndColumnName($objectNameAndColumnName);
-                
-                if(\gettype($whereValue) === 'array') {
-                    $simbol = \strtoupper($whereValue[0]);
-                    $whereValue = $whereValue[1];
-                    $whereArray[] = "[$objectName].[$columnName] $simbol :$objectName$columnName";
-                    $whereArray[] = 'AND';
-                } else if($whereValue !== null) {
-                    $whereArray[] = "[$objectName].[$columnName] = :$objectName$columnName";
-                    $whereArray[] = 'AND';
-                }
+    public function max(string $column, string $alias): Select {
+        [$objectName, $columnName] = $this->getObjectNameAndColumnName($column);
+        $this->query->functions['MAX'][$column] = "MAX([$objectName].[$columnName]) AS $alias";
+        return $this;
+    }
+
+    public function min(string $column, string $alias): Select {
+        [$objectName, $columnName] = $this->getObjectNameAndColumnName($column);
+        $this->query->functions['MIN'][$column] = "MIN([$objectName].[$columnName]) AS $alias";
+        return $this;
+    }
+
+    public function avg(string $column, string $alias, bool $distinct = false) {
+        $this->query->functions['AVG'][$column] = $alias;
+        return $this;
+    }
+
+    public function sum(string $column, string $alias, bool $distinct = false) {
+        $this->query->functions['SUM'][$column] = $alias;
+        return $this;
+    }
+
+    public function concat(string $alias, string ...$mix): Select {
+        $concat = [];
+        foreach ($mix as $column) {
+            if(count(\explode('.', $column)) > 1) {
+                [$objectName, $columnName] = $this->getObjectNameAndColumnName($column);
+                $concat[] = "[$objectName].[$columnName]";
             } else {
-                switch(\gettype($whereValue)) {
-                    case 'string':
-                        switch(\strtoupper($whereValue)) {
-                            case 'OR': 
-                                $position = (count($whereArray)-1);
-                                $whereArray[$position] = 'OR';
-                            break;
-                        }
-                        continue;
-                    break;
-                    case 'array':
-                        [$objectName, $columnName] = $this->getObjectNameAndColumnName($whereValue);
-                        $values = (array_key_exists($columnName, $whereValue)) ? $whereValue[$columnName] : $whereValue["$objectName.$columnName"];
-                        $i = 65; // ASCII CODE for 'A'
-                        foreach ($values as $key => $val) {
-                            foreach ($val as $v) {
-                                $ascii = chr($i);
-                                $whereArray[] = "[$objectName].[$columnName] = :$objectName$columnName$ascii";
-                                $whereArray[] = $key; // OR, AND
-                                $i++;
-
-                                if($objectName !== $this->schema->name) {
-                                    if(array_key_exists($objectName, $this->schema->associations)) {
-                                        $type = $this->associationsSchemas[$objectName]->columns[$columnName]->type;
-                                        $v = $this->valueToSQL($type, $v);
-                                    }
-                                } else {
-                                    $type = $this->schema->columns[$columnName]->type;
-                                    $v = $this->valueToSQL($type, $v);
-                                }
-                    
-                                $this->valuesToPrepare[":$objectName$columnName$ascii"] = $v;
-                            }
-                            array_pop($whereArray);
-                        }
-                    continue 2;
-                }
-                
+                $concat[] = "'$column'";
             }
-
-            if($objectName !== $this->schema->name) {
-                if(array_key_exists($objectName, $this->schema->associations)) {
-                    $type = $this->associationsSchemas[$objectName]->columns[$columnName]->type;
-                    $whereValue = $this->valueToSQL($type, $whereValue);
-                }
-            } else {
-                $type = $this->schema->columns[$columnName]->type;
-                $whereValue = $this->valueToSQL($type, $whereValue);
-            }
-
-            $this->valuesToPrepare[":$objectName$columnName"] = $whereValue;
-            array_pop($whereArray); // remove last 'OR' or last 'AND'.
         }
-        $this->query->where = $whereArray;
+        $concat_string = implode(', ', $concat);
+        $this->query->functions['CONCAT'][] = "CONCAT($concat_string) AS $alias";
+        return $this;
+    }
+
+    public function case(string $column, array $when, string $name): Select {
+        [$objectName, $columnName] = $this->getObjectNameAndColumnName($column);
+        $case = [];
+        foreach ($when as $value) {
+            switch (\strtoupper($value[0])) {
+                case 'WHEN':
+                    if(\gettype($value[1]) === 'boolean') {
+                        $value[1] = ($value[1] === true) ? 1 : 0;
+                    }
+                    $case[] = "WHEN $value[1] THEN '$value[2]'";
+                    break;
+                case 'ELSE':
+                    $case[] = "ELSE '$value[1]'";
+                    break;
+            }
+        }
+
+        $this->query->functions['CASE'][] = "CASE [$objectName].[$columnName] ".implode(' ', $case)." END AS $name";
+        return $this;
+    }
+
+    public function rownumber(string $alias, string ...$orderBy): Select {
+        $orders = [];
+        foreach ($orderBy as $column) {
+            [$objectName, $columnName] = $this->getObjectNameAndColumnName($column);
+            $orders[] = "[$objectName].[$columnName]";
+        }
+        $orderBy_string = implode(', ', $orders);
+        $this->query->functions['ROW_NUMBER'][0] = "ROW_NUMBER() OVER( ORDER BY $orderBy_string) AS $alias";
+        return $this;
+    }
+
+    public function where(array $where): Select {
+        if(! isset($where['as'])) {
+            // error
+        }
+
+        switch($where['as']) {
+            case 'CONDITION':
+                \extract($condition);
+                if(! $special) {
+                    [$objectName, $columnName] = \Otter\ORM\Query\getObjectNameAndColumnName($column);
+                    if($objectName === '::object::') {
+                        $objectName = $this->schema->name;
+                    }
+
+                    $this->query->where = "($column $comparation $value)";
+                }
+                else {
+                    $string = \str_replace('::object::', $this->schema->name, $string);
+                    $this->query->where = "($string)";
+                }
+            break;
+            
+            case 'UNION-CONDITIONS':
+                $string = \str_replace('::object::', $this->schema->name, $where['conditions']);
+                $this->query->where = $string;
+            break;
+
+            default:
+                //error
+        }
 
         return $this;
     }
@@ -128,17 +158,24 @@ class Select {
             if(count($e) === 1) {
                 $assc_model = $modelName;
                 $assc_name = $e[0];
+
+                if($last_association !== null && $last_association->name !== $assc_name) {
+                    $association = $this->schema->associations[$assc_name];
+                }
+
             } else {
                 $assc_model = $e[0];
                 $assc_name = $e[1];
+
+                if($last_association !== null && $last_association->name !== $assc_name) {
+                    $schema = Otter::getSchema($last_association->model);
+                    $modelName = $last_association->name;
+                    $association = $schema->associations[$assc_name];
+                }
             }
 
             if($last_association === null) {
                 $association = $this->schema->associations[$assc_name];
-            } else if($last_association->name !== $assc_name) {
-                $schema = Otter::getSchema($last_association->model);
-                $modelName = $last_association->name;
-                $association = $schema->associations[$assc_name];
             }
 
             if( $association->model !== OtterValue::UNDEFINED && $schema->name !== $association->model) {
@@ -275,24 +312,5 @@ class Select {
             break;
         }
         return $value;
-    }
-
-    protected function getObjectNameAndColumnName($objectNameAndColumnName) {
-        if(\is_array($objectNameAndColumnName)) {
-            $objectNameAndColumnName = (array_keys($objectNameAndColumnName)[0]);
-        }
-
-        $objectNameAndColumnName = explode('.', $objectNameAndColumnName);
-        if(\count($objectNameAndColumnName) > 1) {
-            $objectName = $objectNameAndColumnName[0];
-            $columnName = $objectNameAndColumnName[1];
-        } else {
-            $objectName = $this->schema->name;
-            $columnName = $objectNameAndColumnName[0];
-        }
-        return [
-            $objectName,
-            $columnName
-        ];
     }
 }
